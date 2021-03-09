@@ -1,5 +1,5 @@
 site_name: ColorHelper
-ssite_url: https://codebyzach.github.io/sublime_color_helper/
+site_url: https://codebyzach.github.io/sublime_color_helper/
 repo_url: https://github.com/CodeByZach/sublime_color_helper/
 edit_uri: tree/master/docs/src/markdown
 site_description: Popup tooltips and previews for stylesheet colors.
