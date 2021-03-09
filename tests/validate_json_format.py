@@ -30,15 +30,15 @@ RE_TRAILING_COMMA = re.compile(
                 (?P<square_ws>[\s\r\n]*) # white space
                 (?P<square_bracket>\])   # bracket
             )
-          | (?P<curly_comma>
+            | (?P<curly_comma>
                 ,                        # trailing comma
                 (?P<curly_ws>[\s\r\n]*)  # white space
                 (?P<curly_bracket>\})    # bracket
             )
         )
-      | (?P<code>
+        | (?P<code>
             "(?:\\.|[^"\\])*"            # double quoted string
-          | .[^,"']*                     # everything else
+            | .[^,"']*                   # everything else
         )
     ''',
     re.DOTALL

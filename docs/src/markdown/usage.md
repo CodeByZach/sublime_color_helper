@@ -206,7 +206,7 @@ If you have [@weslly][weslly]'s [ColorPicker][color-picker] package installed, `
 
 ### `enable_global_user_palettes`
 
-Enables showing user palettes (found in `Packages/User/color_helper.palettes`) in the [Palette Panel](#palette-panel).
+Enables showing user palettes (found in `Packages/User/ColorHelper.palettes`) in the [Palette Panel](#palette-panel).
 
 ```js
     // Show global palettes in palette panel
@@ -215,7 +215,7 @@ Enables showing user palettes (found in `Packages/User/color_helper.palettes`) i
 
 ### `enable_favorite_palette`
 
-Enables showing the Favorites palette (found in `Packages/User/color_helper.palettes`) in the [Palette Panel](#palette-panel).
+Enables showing the Favorites palette (found in `Packages/User/ColorHelper.palettes`) in the [Palette Panel](#palette-panel).
 
 ```js
     // Enable storing favorite colors to the favorite palette

@@ -204,19 +204,19 @@ def get_scope_completion(view, rules, skip_sel_check=False):
 def get_favs():
     """Get favorites object."""
 
-    bookmark_colors = sublime.load_settings('color_helper.palettes').get("favorites", [])
+    bookmark_colors = sublime.load_settings('ColorHelper.palettes').get("favorites", [])
     return {"name": "Favorites", "colors": bookmark_colors}
 
 
 def save_palettes(palettes, favs=False):
     """Save palettes."""
 
-    s = sublime.load_settings('color_helper.palettes')
+    s = sublime.load_settings('ColorHelper.palettes')
     if favs:
         s.set('favorites', palettes)
     else:
         s.set('palettes', palettes)
-    sublime.save_settings('color_helper.palettes')
+    sublime.save_settings('ColorHelper.palettes')
 
 
 def save_project_palettes(window, palettes):
@@ -233,7 +233,7 @@ def save_project_palettes(window, palettes):
 def get_palettes():
     """Get palettes."""
 
-    return sublime.load_settings('color_helper.palettes').get("palettes", [])
+    return sublime.load_settings('ColorHelper.palettes').get("palettes", [])
 
 
 def get_project_palettes(window):
