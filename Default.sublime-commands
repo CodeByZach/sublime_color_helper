@@ -6,22 +6,16 @@
     {
         "caption": "Color Helper: Show Palettes",
         "command": "color_helper",
-        "args": {
-            "mode": "palette"
-        }
+        "args": { "mode": "palette" }
     },
     {
         "caption": "Color Helper: Show Color Info",
         "command": "color_helper",
-        "args": {
-            "mode": "info"
-        }
+        "args": { "mode": "info" }
     },
     {
         "caption": "Color Helper: Show Color Picker",
         "command": "color_helper",
-        "args": {
-            "mode": "color_picker"
-        }
+        "args": { "mode": "color_picker" }
     }
 ]

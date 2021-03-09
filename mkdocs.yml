@@ -1,10 +1,10 @@
 site_name: ColorHelper
-site_url: https://facelessuser.github.io/ColorHelper
-repo_url: https://github.com/facelessuser/ColorHelper
+site_url: https://codebyzach.github.io/sublime_color_helper/
+repo_url: https://github.com/CodeByZach/sublime_color_helper/
 edit_uri: tree/master/docs/src/markdown
 site_description: Popup tooltips and previews for stylesheet colors.
 copyright: |
-  Copyright &copy; 2015 - 2020 <a href="https://github.com/facelessuser">Isaac Muse</a>
+  Copyright &copy; 2015 - 2020 <a href="https://github.com/CodeByZach" target="_blank" rel="noopener">Isaac Muse</a>
   <br><span class="md-footer-custom-text">emoji provided free by </span>
   <a href="https://github.com/twitter/twemoji">Twemoji</a>
 
@@ -57,8 +57,8 @@ markdown_extensions:
       repo_url_shortener: true
       repo_url_shorthand: true
       social_url_shorthand: true
-      user: facelessuser
-      repo: ColorHelper
+      user: CodeByZach
+      repo: sublime_color_helper
   - pymdownx.tilde:
   - pymdownx.caret:
   - pymdownx.smartsymbols:
@@ -83,9 +83,7 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/facelessuser
-    - icon: fontawesome/brands/discord
-      link: https://discord.gg/TWs8Tgr
+      link: https://github.com/CodeByZach
 
 plugins:
   - search

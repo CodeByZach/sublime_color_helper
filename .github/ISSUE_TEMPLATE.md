@@ -1,6 +1,6 @@
 Please read and fill out this template by replacing the instructions with appropriate information.  If the template is not followed, the issue will be marked `Invalid` and closed.
 
-Before submitting an issue search past issues and read the area of the [documentation](http://facelessuser.github.io/ColorHelper/) related to your specific question, issue, or request.
+Before submitting an issue search past issues and read the area of the [documentation](https://codebyzach.github.io/sublime_color_helper/) related to your specific question, issue, or request.
 
 ---
 

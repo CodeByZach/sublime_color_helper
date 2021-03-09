@@ -48,7 +48,7 @@ The Palette panel will allow you to view the current saved palettes: favorites, 
 
 ![palettes](images/palettes.png)
 
-The Favorites palette and user palettes are found in your `Packages/User/color_helper.palettes`.  Project palettes are stored in your actual project file; if one does not exist, it will be stored in memory.
+The Favorites palette and user palettes are found in your `Packages/User/ColorHelper.palettes`.  Project palettes are stored in your actual project file; if one does not exist, it will be stored in memory.
 
 By clicking a palette, you will be taken to the [Color Panel](#color-panel) to select a color to insert into the current document.  You can also access the [Palette Delete Panel](#palette-delete-panel) directly.
 

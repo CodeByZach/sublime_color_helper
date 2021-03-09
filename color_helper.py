@@ -66,7 +66,7 @@ def start_file_index(view):
                         rules.get('use_hex_argb', False)
                     )
                     ch_file_thread.start()
-                    s = sublime.load_settings('color_helper.sublime-settings')
+                    s = sublime.load_settings('ColorHelper.sublime-settings')
                     if s.get('show_index_status', True):
                         sublime.status_message('File color indexer started...')
 
@@ -522,7 +522,7 @@ class ColorHelperCommand(sublime_plugin.TextCommand):
         template_vars['hwb_w'] = util.fmt_float(w * 100.0)
         template_vars['hwb_b'] = util.fmt_float(b * 100.0)
 
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         show_global_palettes = s.get('enable_global_user_palettes', True)
         show_project_palettes = s.get('enable_project_user_palettes', True)
         show_favorite_palette = s.get('enable_favorite_palette', True)
@@ -672,12 +672,12 @@ class ColorHelperCommand(sublime_plugin.TextCommand):
         """Show preview of all palettes."""
 
         show_div = False
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         show_global_palettes = s.get('enable_global_user_palettes', True)
         show_project_palettes = s.get('enable_project_user_palettes', True)
         show_favorite_palette = s.get('enable_favorite_palette', True)
         show_current_palette = s.get('enable_current_file_palette', True)
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         show_picker = s.get('enable_color_picker', True) and self.no_info
         palettes = util.get_palettes()
         project_palettes = util.get_project_palettes(self.view.window())
@@ -968,7 +968,7 @@ class ColorHelperCommand(sublime_plugin.TextCommand):
         """Run the specified tooltip."""
 
         rgba = None
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         border_clr = s.get('image_border_color')
         if border_clr is not None:
             try:
@@ -1011,7 +1011,7 @@ class ColorHelperCommand(sublime_plugin.TextCommand):
     def is_enabled(self, mode, palette_name=None, color=None, auto=False):
         """Check if command is enabled."""
 
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         return bool(
             (mode == "info" and self.get_cursor_color()[0]) or
             (
@@ -1044,7 +1044,7 @@ class ColorHelperFileIndexCommand(sublime_plugin.TextCommand):
     def is_enabled(self):
         """Check if command is enabled."""
 
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         return s.get('enable_current_file_palette', True)
 
 
@@ -1423,7 +1423,7 @@ class ColorHelperListener(sublime_plugin.EventListener):
 
         file_name = view.file_name()
         ext = os.path.splitext(file_name)[1].lower() if file_name is not None else None
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         rules = s.get("color_scanning", [])
         syntax = os.path.splitext(view.settings().get('syntax').replace('Packages/', '', 1))[0]
         scan_scopes = []
@@ -1543,7 +1543,7 @@ class ColorHelperListener(sublime_plugin.EventListener):
 
         if self.should_update(view):
             self.set_file_scan_rules(view)
-            s = sublime.load_settings('color_helper.sublime-settings')
+            s = sublime.load_settings('ColorHelper.sublime-settings')
             show_current_palette = s.get('enable_current_file_palette', True)
             view.settings().set('color_helper.file_palette', [])
             if show_current_palette:
@@ -1572,7 +1572,7 @@ class ColorHelperListener(sublime_plugin.EventListener):
                 view.settings().erase('color_helper.preview_meta')
             return
 
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         show_current_palette = s.get('enable_current_file_palette', True)
         if self.should_update(view):
             view.settings().erase('color_helper.preview_meta')
@@ -1586,7 +1586,7 @@ class ColorHelperListener(sublime_plugin.EventListener):
 
         if self.ignore_event(view):
             return
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         show_current_palette = s.get('enable_current_file_palette', True)
         if show_current_palette:
             start_file_index(view)
@@ -1622,7 +1622,7 @@ class ChFileIndexThread(threading.Thread):
             colors.sort()
             view.settings().set('color_helper.file_palette', colors)
             util.debug('Colors:\n', colors)
-            s = sublime.load_settings('color_helper.sublime-settings')
+            s = sublime.load_settings('ColorHelper.sublime-settings')
             if s.get('show_index_status', True):
                 sublime.status_message('File color index complete...')
         except Exception:
@@ -1731,7 +1731,7 @@ class ChThread(threading.Thread):
             self.ignore_all = False
             self.time = time()
             return
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         auto_popup = s.get('auto_popup', True)
         if view is not None and auto_popup:
             info = False
@@ -1899,7 +1899,7 @@ def plugin_loaded():
     global ch_last_updated
 
     # Setup settings
-    ch_settings = sublime.load_settings('color_helper.sublime-settings')
+    ch_settings = sublime.load_settings('ColorHelper.sublime-settings')
 
     # Setup reload events
     ch_settings.clear_on_change('reload')

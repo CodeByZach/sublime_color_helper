@@ -1,5 +1,41 @@
 [
     {
+        "caption": "Tools",
+        "mnemonic": "T",
+        "id": "tools",
+        "children":
+        [
+            {
+                "id": "packages",
+                "caption": "Packages",
+                "children":
+                [
+                    {
+                        "caption": "Color Helper",
+                        "children":
+                        [
+                            {
+                                "caption": "Color Info",
+                                "command": "color_helper",
+                                "args": { "mode": "info" }
+                            },
+                            {
+                                "caption": "Color Palettes",
+                                "command": "color_helper",
+                                "args": { "mode": "palette" }
+                            },
+                            {
+                                "caption": "Color Picker",
+                                "command": "color_helper",
+                                "args": { "mode": "color_picker" }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "id": "preferences",
         "children":
         [
@@ -15,9 +51,37 @@
                             {
                                 "caption": "Settings",
                                 "command": "edit_settings",
-                                "args": {
-                                    "base_file": "${packages}/ColorHelper/color_helper.sublime-settings",
-                                    "default": "// Settings in here override those in \"ColorHelper/color_helper.sublime-settings\",\n\n{\n\t$0\n}\n"
+                                "args":
+                                {
+                                    "base_file": "${packages}/ColorHelper/ColorHelper.sublime-settings",
+                                    "default": "{\n\t$0\n}\n"
+                                }
+                            },
+                            { "caption": "-" },
+                            {
+                                "caption": "Menus",
+                                "children":
+                                [
+                                    {
+                                        "caption": "Main Menu",
+                                        "command": "z_edit_settings",
+                                        "args":
+                                        {
+                                            "is_parent_setting": "1",
+                                            "base_file": "${packages}/ColorHelper/Main.sublime-menu",
+                                            "default": "[\n\t$0\n]\n"
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "caption": "Commands",
+                                "command": "z_edit_settings",
+                                "args":
+                                {
+                                    "is_parent_setting": "1",
+                                    "base_file": "${packages}/ColorHelper/Default.sublime-commands",
+                                    "default": "[\n\t$0\n]\n"
                                 }
                             },
                             { "caption": "-" },
@@ -28,16 +92,12 @@
                             {
                                 "caption": "Documentation",
                                 "command": "color_helper_open_site",
-                                "args": {
-                                    "url": "http://facelessuser.github.io/ColorHelper/"
-                                }
+                                "args": { "url": "https://codebyzach.github.io/sublime_color_helper/" }
                             },
                             {
                                 "caption": "Quick Start Guide",
                                 "command": "color_helper_doc",
-                                "args": {
-                                    "page": "${packages}/ColorHelper/quickstart.md"
-                                }
+                                "args": { "page": "${packages}/ColorHelper/QUICKSTART.md" }
                             },
                             { "caption": "-" },
                             {
@@ -47,9 +107,12 @@
                             {
                                 "caption": "Issues",
                                 "command": "color_helper_open_site",
-                                "args": {
-                                    "url": "https://github.com/facelessuser/ColorHelper/issues"
-                                }
+                                "args": { "url": "https://github.com/CodeByZach/sublime_color_helper/issues" }
+                            },
+                            {
+                                "caption": "README",
+                                "command": "open_file",
+                                "args": { "file": "${packages}/ColorHelper/README.md" }
                             }
                         ]
                     }

@@ -9,16 +9,16 @@ markdown_extensions:
         nbsp: false
 ---
 {% if plugin.show_palette_menu -%}
-[palettes](__palettes__){: .small} 
+[palettes](__palettes__){: .small}
 {% endif -%}
 {% if plugin.show_picker_menu -%}
-[picker](__color_picker__:{{plugin.color}}){: .small} 
+[picker](__color_picker__:{{plugin.color}}){: .small}
 {% endif -%}
 {% if plugin.show_global_palette_menu -%}
-[add](__add_color__:{{plugin.color}}){: .small} 
+[add](__add_color__:{{plugin.color}}){: .small}
 {% endif -%}
 {% if plugin.show_favorite_menu and plugin.is_marked -%}
-[unmark](__remove_fav__:{{plugin.color_dlevel}}){: .small} 
+[unmark](__remove_fav__:{{plugin.color_dlevel}}){: .small}
 {% elif plugin.show_favorite_menu and not plugin.is_marked -%}
 [mark](__add_fav__:{{plugin.color_dlevel}}){: .small}
 {%- endif %}
@@ -42,18 +42,18 @@ markdown_extensions:
 <br>
   {%- endif %}
   {%- if plugin.show_hex_color %}
-[&gt;&gt;&gt;](__convert__:{{plugin.color}}:hex){: .small} 
+[&gt;&gt;&gt;](__convert__:{{plugin.color}}:hex){: .small}
  <span class="support type">{{plugin.hex_color}}</span>
 <br>
   {%- endif %}
   {%- if plugin.show_hexa_color %}
-[&gt;&gt;&gt;](__convert__:{{plugin.color}}:hexa){: .small} 
+[&gt;&gt;&gt;](__convert__:{{plugin.color}}:hexa){: .small}
  <span class="support type">{{plugin.hex_color}}</span>
 <span class="support type alpha">{{plugin.hex_alpha}}</span>
 <br>
   {%- endif %}
   {%- if plugin.show_ahex_color %}
-[&gt;&gt;&gt;](__convert__:{{plugin.color}}:ahex){: .small} 
+[&gt;&gt;&gt;](__convert__:{{plugin.color}}:ahex){: .small}
  <span class="support type">#</span>
 <span class="support type alpha">{{plugin.hex_alpha}}</span>
 <span class="support type">{{plugin.ahex_color}}</span>

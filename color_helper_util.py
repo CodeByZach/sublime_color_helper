@@ -23,8 +23,6 @@ COLOR_PARTS = {
     "percent": r"[+\-]?(?:(?:\d*\.\d+)|\d+)%",
     "float": r"[+\-]?(?:(?:\d*\.\d+)|\d+)",
     "angle": r"[+\-]?(?:(?:\d*\.\d+)|\d+)(deg|rad|turn|grad)?"
-
-
 }
 
 COMPLETE = r'''
