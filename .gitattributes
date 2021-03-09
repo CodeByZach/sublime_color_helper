@@ -2,15 +2,18 @@
 .gitattributes export-ignore
 
 # Files & folders that should not be included in production.
-/.travis.yml                        export-ignore
-/mkdocs.yml                         export-ignore
-/.github/                           export-ignore
-/docs/src/markdown/_snippets/       export-ignore
-/docs/src/markdown/about/           export-ignore
-/docs/src/markdown/index.md         export-ignore
-/docs/src/markdown/installation.md  export-ignore
-/docs/src/markdown/usage.md         export-ignore
-/docs/theme/                        export-ignore
-/tests/                             export-ignore
-/run_tests.sh                       export-ignore
-/setup.cfg                          export-ignore
+/.github/                          export-ignore
+/docs/src/markdown/_snippets/      export-ignore
+/docs/src/markdown/about/          export-ignore
+/docs/src/markdown/index.md        export-ignore
+/docs/src/markdown/installation.md export-ignore
+/docs/src/markdown/usage.md        export-ignore
+/docs/src/requirements.txt         export-ignore
+/tests/                            export-ignore
+/.pyspelling.yml                   export-ignore
+/.travis.yml                       export-ignore
+/mkdocs.yml                        export-ignore
+/Pipfile                           export-ignore
+/run_tests.sh                      export-ignore
+/setup.cfg                         export-ignore
+/tox.ini                           export-ignore

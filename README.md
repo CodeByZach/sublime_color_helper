@@ -31,10 +31,10 @@ https://codebyzach.github.io/sublime_color_helper/
 
 ColorHelper is released under the MIT license.
 
-[release-image]: https://img.shields.io/github/tag/CodeByZach/sublime_trailing_spaces.svg?label=version
-[release-link]: https://github.com/CodeByZach/sublime_trailing_spaces/releases
-[github-ci-image]: https://github.com/CodeByZach/sublime_trailing_spaces/workflows/build/badge.svg?branch=master&event=push
-[github-ci-link]: https://github.com/CodeByZach/sublime_trailing_spaces/actions?query=workflow%3Abuild+branch%3Amaster
+[release-image]: https://img.shields.io/github/tag/CodeByZach/sublime_color_helper.svg?label=version
+[release-link]: https://github.com/CodeByZach/sublime_color_helper/releases
+[github-ci-image]: https://github.com/CodeByZach/sublime_color_helper/workflows/build/badge.svg?branch=master&event=push
+[github-ci-link]: https://github.com/CodeByZach/sublime_color_helper/actions?query=workflow%3Abuild+branch%3Amaster
 [pc-image]: https://img.shields.io/packagecontrol/dt/ColorHelper.svg?labelColor=333333&logo=sublime%20text
 [pc-link]: https://packagecontrol.io/packages/ColorHelper
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg?labelColor=333333

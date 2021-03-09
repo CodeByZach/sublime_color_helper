@@ -5,5 +5,5 @@
 [package-control]: https://packagecontrol.io/
 [package-control-install]: https://packagecontrol.io/installation
 [pymdown-extensions]: https://github.com/facelessuser/pymdown-extensions
-[template]: https://github.com/facelessuser/BracketHighlighter/blob/master/.github/ISSUE_TEMPLATE.md
+[template]: https://github.com/CodeByZach/sublime_color_helper/blob/master/.github/ISSUE_TEMPLATE.md
 [weslly]: https://github.com/weslly

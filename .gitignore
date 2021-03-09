@@ -1,6 +1,11 @@
-*.DS_Store
+# mkdocs
+/site/
+/build/
+
+# Testing
 *.pyc
-site/*
-build/*
-.cache/*
-.tox/*
+.cache/
+.tox/
+
+# Site Files
+/Pipfile.lock
