@@ -620,7 +620,7 @@ class ColorHelperListener(sublime_plugin.EventListener):
 
         file_name = view.file_name()
         ext = os.path.splitext(file_name)[1].lower() if file_name is not None else None
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         rules = util.get_settings_rules()
         syntax = os.path.splitext(view.settings().get('syntax').replace('Packages/', '', 1))[0]
 
@@ -812,7 +812,7 @@ def plugin_loaded():
     global ch_last_updated
 
     # Setup settings
-    ch_settings = sublime.load_settings('color_helper.sublime-settings')
+    ch_settings = sublime.load_settings('ColorHelper.sublime-settings')
 
     # Setup reload events
     ch_settings.clear_on_change('reload')

@@ -40,4 +40,4 @@ class ColorHelperReloadColorClassCommand(sublime_plugin.ApplicationCommand):
     def is_enabled(self, **kwargs):
         """Check if enabled."""
 
-        return sublime.load_settings('color_helper.sublime-settings').get("debug", False)
+        return sublime.load_settings('ColorHelper.sublime-settings').get("debug", False)

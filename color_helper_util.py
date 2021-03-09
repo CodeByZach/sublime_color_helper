@@ -100,7 +100,7 @@ def log(*args):
 def debug(*args):
     """Log if debug enabled."""
 
-    if sublime.load_settings("color_helper.sublime-settings").get('debug', False):
+    if sublime.load_settings("ColorHelper.sublime-settings").get('debug', False):
         log(*args)
 
 
@@ -108,7 +108,7 @@ def get_line_height(view):
     """Get the line height."""
 
     height = view.line_height()
-    settings = sublime.load_settings("color_helper.sublime-settings")
+    settings = sublime.load_settings("ColorHelper.sublime-settings")
 
     return int((height / 2.0) if LINE_HEIGHT_WORKAROUND and settings.get('line_height_workaround', False) else height)
 
@@ -116,9 +116,9 @@ def get_line_height(view):
 def color_picker_available():
     """Check if color picker is available."""
 
-    s = sublime.load_settings('color_helper_share.sublime-settings')
+    s = sublime.load_settings('ColorHelper.sublime-settings')
     s.set('color_pick_return', None)
-    sublime.run_command('color_pick_api_is_available', {'settings': 'color_helper_share.sublime-settings'})
+    sublime.run_command('color_pick_api_is_available', {'settings': 'ColorHelper.sublime-settings'})
     return s.get('color_pick_return', None)
 
 
@@ -204,7 +204,7 @@ def merge_rules(a, b):
 def get_settings_rules():
     """Read rules from settings and allow overrides."""
 
-    s = sublime.load_settings('color_helper.sublime-settings')
+    s = sublime.load_settings('ColorHelper.sublime-settings')
     rules = s.get("color_rules", [])
     user_rules = s.get("user_color_rules", [])
     names = {rule["name"]: i for i, rule in enumerate(rules) if "name" in rule}
@@ -221,7 +221,7 @@ def get_settings_rules():
 def get_settings_colors():
     """Read color classes from settings and allow overrides."""
 
-    s = sublime.load_settings('color_helper.sublime-settings')
+    s = sublime.load_settings('ColorHelper.sublime-settings')
     classes = s.get("color_classes", {})
     user_classes = s.get("user_color_classes", {})
     for k, v in user_classes.items():

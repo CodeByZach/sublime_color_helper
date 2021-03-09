@@ -3,7 +3,7 @@ name: deploy
 on:
   push:
     tags:
-    - 'st3-*'
+    - '*'
 
 jobs:
 
@@ -25,9 +25,9 @@ jobs:
         python -m pip install -r docs/src/requirements.txt
     - name: Deploy documents
       run: |
-        git config user.name facelessuser
+        git config user.name CodeByZach
         git config user.email "${{ secrets.GH_EMAIL }}"
-        git remote add gh-token "https://${{ secrets.GH_TOKEN }}@github.com/facelessuser/ColorHelper.git"
+        git remote add gh-token "https://${{ secrets.GH_TOKEN }}@github.com/CodeByZach/sublime_color_helper.git"
         git fetch gh-token && git fetch gh-token gh-pages:gh-pages
         python -m mkdocs gh-deploy -v --clean --remote-name gh-token
         git push gh-token gh-pages

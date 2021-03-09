@@ -76,4 +76,4 @@ labels:
 
 - name: 'C: settings'
   color: subcategory
-  description: Sublime settins files.
+  description: Sublime settings files.

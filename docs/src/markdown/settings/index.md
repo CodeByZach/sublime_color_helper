@@ -2,7 +2,7 @@
 
 ## Overview
 
-Settings for Color Helper are contained within the `color_helper.sublime-settings` file. There are a number of options
+Settings for Color Helper are contained within the `ColorHelper.sublime-settings` file. There are a number of options
 that control the ColorHelper experiences. This ranges from tweaking how colors are previewed, what colors are scanned
 in what files, what features are enabled, etc.sublime-settings
 

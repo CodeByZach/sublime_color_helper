@@ -1,4 +1,4 @@
-Thanks you for contributing to this project!  Make sure you've read: http://facelessuser.github.io/ColorHelper/contributing/.  Please follow the guidelines below.
+Thanks you for contributing to this project!  Make sure you've read: https://codebyzach.github.io/sublime_color_helper/contributing/.  Please follow the guidelines below.
 
 - Please describe the change in as much detail as possible so I can understand what is being added or modified.
 

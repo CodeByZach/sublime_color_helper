@@ -237,11 +237,11 @@ class ColorHelperCommand(_ColorMixin, sublime_plugin.TextCommand):
         if self.color_picker_package:
             self.view.hide_popup()
             old_color = Color(color).convert("srgb", fit=True).to_string(**util.HEX)
-            s = sublime.load_settings('color_helper_share.sublime-settings')
+            s = sublime.load_settings('ColorHelper.sublime-settings')
             s.set('color_pick_return', None)
             self.view.window().run_command(
                 'color_pick_api_get_color',
-                {'settings': 'color_helper_share.sublime-settings', "default_color": old_color}
+                {'settings': 'ColorHelper.sublime-settings', "default_color": old_color}
             )
             new_color = s.get('color_pick_return', None)
             if new_color is not None and new_color != old_color:
@@ -426,7 +426,7 @@ class ColorHelperCommand(_ColorMixin, sublime_plugin.TextCommand):
     def format_info(self, obj, template_vars):
         """Format the selected color info."""
 
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
 
         color = obj.color
         current = self.view.substr(sublime.Region(obj.start, obj.end))
@@ -553,12 +553,12 @@ class ColorHelperCommand(_ColorMixin, sublime_plugin.TextCommand):
         """Show preview of all palettes."""
 
         show_div = False
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         show_global_palettes = s.get('enable_global_user_palettes', True)
         show_project_palettes = s.get('enable_project_user_palettes', True)
         show_favorite_palette = s.get('enable_favorite_palette', True)
         # show_current_palette = s.get('enable_current_file_palette', True)
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         show_picker = s.get('enable_color_picker', True) and self.no_info
         palettes = util.get_palettes()
         project_palettes = util.get_project_palettes(self.view.window())
@@ -749,7 +749,7 @@ class ColorHelperCommand(_ColorMixin, sublime_plugin.TextCommand):
         self.setup_sizes()
         self.setup_color_class()
         self.palette_w = self.width * 2
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         self.color_picker_package = s.get('use_color_picker_package', False) and util.color_picker_available()
         self.no_info = True
         self.no_palette = True
@@ -784,7 +784,7 @@ class ColorHelperCommand(_ColorMixin, sublime_plugin.TextCommand):
         except Exception:
             return False
 
-        s = sublime.load_settings('color_helper.sublime-settings')
+        s = sublime.load_settings('ColorHelper.sublime-settings')
         return bool(
             (mode == "info" and self.get_cursor_color() is not None) or
             (

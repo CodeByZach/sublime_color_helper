@@ -20,13 +20,13 @@ class _ColorMixin:
     def setup_gamut_style(self):
         """Setup the gamut style."""
 
-        ch_settings = sublime.load_settings('color_helper.sublime-settings')
+        ch_settings = sublime.load_settings('ColorHelper.sublime-settings')
         self.show_out_of_gamut_preview = ch_settings.get('show_out_of_gamut_preview', True)
 
     def setup_image_border(self):
         """Setup_image_border."""
 
-        ch_settings = sublime.load_settings('color_helper.sublime-settings')
+        ch_settings = sublime.load_settings('ColorHelper.sublime-settings')
         border_color = ch_settings.get('image_border_color')
         if border_color is not None:
             try:
@@ -122,7 +122,7 @@ class _ColorMixin:
     def setup_sizes(self):
         """Get sizes."""
 
-        settings = sublime.load_settings('color_helper.sublime-settings')
+        settings = sublime.load_settings('ColorHelper.sublime-settings')
         self.graphic_size = qualify_settings(settings, 'graphic_size', 'medium')
         self.graphic_scale = qualify_settings(settings, 'graphic_scale', None)
 
