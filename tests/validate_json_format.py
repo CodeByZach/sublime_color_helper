@@ -15,9 +15,9 @@ RE_COMMENT = re.compile(
             /\*[^*]*\*+(?:[^/*][^*]*\*+)*/  # multi-line comments
           | [ \t]*//(?:[^\r\n])*            # single line comments
         )
-      | (?P<code>
+        | (?P<code>
             "(?:\\.|[^"\\])*"               # double quotes
-          | .[^/"']*                        # everything else
+            | .[^/"']*                      # everything else
         )
     ''',
     re.DOTALL

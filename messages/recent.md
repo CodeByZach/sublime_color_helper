@@ -9,4 +9,4 @@ the release.
 
 ColorHelper is a major overhaul, so existing settings are likely to break. 
 Please checkout the latest documentation to learn how to configure and use 
-the new ColorHelper: https://facelessuser.github.io/ColorHelper/.
+the new ColorHelper: https://codebyzach.github.io/sublime_color_helper/.

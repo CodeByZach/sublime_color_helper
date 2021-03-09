@@ -1,15 +1,14 @@
-[back]({{plugin.back_target}}){: .small} 
+[back]({{plugin.back_target}}){: .small}
 {% if plugin.show_delete_menu -%}
-[delete](__delete__palettes__){: .small} 
+[delete](__delete__palettes__){: .small}
 {%- endif %}
 {%- if plugin.show_delete_ui %}
 
 ## Delete Palette
-
 Click the palette to delete.
 {%- elif plugin.show_new_ui %}
-## New Palette
 
+## New Palette
 [Create New Palette](__create_palette__:__global__:{{plugin.color}})
 
 [Create New Project Palette](__create_palette__:__project__:{{plugin.color}})
