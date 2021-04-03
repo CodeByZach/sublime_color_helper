@@ -2,13 +2,15 @@
 
 ## Package Control
 
-The recommended way to install ColorHelper is via [Package Control](https://packagecontrol.io/).  Package Control will install the correct branch on your system and keep it up to date.
+The recommended way to install ColorHelper is via [Package Control](https://packagecontrol.io/).  Package Control will
+install the correct branch on your system and keep it up to date.
 
 ---
 
 1. Ensure Package Control is installed.  Instructions are found [here](https://packagecontrol.io/installation).
 
-2. In Sublime Text, press <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>p</kbd> (Win, Linux) or <kbd>cmd</kbd> + <kbd>shift</kbd> + <kbd>p</kbd> (mac OS) to bring up the quick panel and start typing `Package Control: Install Package`.  Select the command and it will show a list of installable plugins.
+2. In Sublime Text, press <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>p</kbd> (Win, Linux) or <kbd>cmd</kbd> + <kbd>shift</kbd> + <kbd>p</kbd> (mac OS)
+   to bring up the quick panel and start typing `Package Control: Install Package`.  Select the command and it will show a list of installable plugins.
 
 3. Start typing `ColorHelper`; when you see it, select it.
 
@@ -18,8 +20,7 @@ The recommended way to install ColorHelper is via [Package Control](https://pack
 
 ## Install 3.0 Beta {: #install-3.0-beta}
 
-To install the 3.0 Beta, you will need to add the following to your `Packages/User/Package Control.sublime-settings`
-file.
+To install the 3.0 Beta, you will need to add the following to your `Packages/User/Package Control.sublime-settings` file.
 
 ```js
     // A list of packages to install pre-release versions for. Versions
@@ -40,7 +41,8 @@ Feedback can be provided in the beta thread in project's issues: #159.
 
     If you are forking for a pull request, you should **just** clone ColorHelper and run Package Control's `Satisfy Dependency` command to get all the dependencies.
 
-For those who want to install ColorHelper without package control, here are the steps.  It understood that some people for what ever reason will prefer manually and may even have legitimate reasons to do so.  When going this route, you will have to keep all the packages updated yourself.
+For those who want to install ColorHelper without package control, here are the steps.  It understood that some people for what ever reason will prefer
+manually and may even have legitimate reasons to do so.  When going this route, you will have to keep all the packages updated yourself.
 
 ---
 
@@ -222,7 +224,8 @@ For those who want to install ColorHelper without package control, here are the 
 
 1. Quit Sublime Text.
 
-2. Open a terminal and enter the following.  For dependencies replace the URL with the appropriate URL, and the appropriate folder to check it out to:
+2. Open a terminal and enter the following.  For dependencies replace the URL with the appropriate URL,
+   and the appropriate folder to check it out to:
 
     ```
     cd /path/to/Sublime Text 3/Packages
