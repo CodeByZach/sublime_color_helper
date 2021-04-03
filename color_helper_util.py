@@ -11,7 +11,7 @@ import mdpopups
 import base64
 import importlib
 
-RE_COLOR_START = r"(?i)(?:\b(?<![-#&])(?:color|hsla?|lch|lab|hwb|rgba?)\(|\b(?<![-#&])[\w]{3,}(?!\()\b|(?<![&])#)"
+RE_COLOR_START = r"(?i)(?:\b(?<![-#&$])(?:color|hsla?|lch|lab|hwb|rgba?)\(|\b(?<![-#&$])[\w]{3,}(?![(-])\b|(?<![&])#)"
 
 COLOR = {"color": True, "fit": False}
 HEX = {"hex": True}
@@ -22,13 +22,21 @@ FULL_PREC = {"fit": False, "precision": -1}
 COLOR_FULL_PREC = {"color": True, "fit": False, "precision": -1}
 SRGB_SPACES = ("srgb", "hsl", "hwb")
 
+lang_map = {
+    # `'name': (('mapping_alias',), ('tmLanguage_or_sublime-syntax file',))`
+    'color-helper': (('color-helper',), ('ColorHelper/ColorHelperColors',))
+}
+
 FRONTMATTER = mdpopups.format_frontmatter(
     {
         "allow_code_wrap": False,
+        "language_map": lang_map,
         "markdown_extensions": [
             "markdown.extensions.admonition",
             "markdown.extensions.attr_list",
             "markdown.extensions.def_list",
+            "markdown.extensions.md_in_html",
+            "pymdownx.inlinehilite",
             "pymdownx.betterem",
             "pymdownx.magiclink"
         ]
@@ -39,9 +47,87 @@ LINE_HEIGHT_WORKAROUND = platform.system() == "Windows"
 
 ADD_CSS = dedent(
     '''
-    div.color-helper { margin: 0; padding: 0.5rem; }
+    html.light {
+      --ch-button-color: color(var(--mdpopups-bg) blend(black 85%));
+    }
+    html.dark {
+      --ch-button-color: color(var(--mdpopups-bg) blend(white 85%));
+    }
+    div.color-helper { margin: 0; padding: 0rem; }
+
     .color-helper .small { font-size: 0.8rem; }
-    .color-helper .alpha { text-decoration: underline; }
+    .color-helper a { text-decoration: none; }
+    .color-helper .comment {
+        font-size: 0.8rem;
+        font-style: italic;
+        color: color(var(--mdpopups-fg) a(50%));
+    }
+
+    .color-helper div.menu a {
+        line-height: 0.8rem;
+        font-size: 0.8rem;
+        color: var(--mdpopups-fg);
+    }
+    .color-helper div.menu {
+        padding: 0.5rem 0.5rem 0 0.5rem;
+        margin: 0;
+        background-color: var(--ch-button-color);
+    }
+    .color-helper div.menu a {
+        padding: 0.25rem;
+    }
+    .color-helper div.panel {
+        padding: 0.5rem;
+        margin: 0;
+    }
+
+    .color-helper div.buttons {
+        padding: 0 0.5rem;
+        padding-top: 0;
+    }
+
+    .color-helper code.highlight {
+        font-size: inherit;
+    }
+
+    .color-helper a.button {
+        font-size: 0.8rem;
+        line-height: 0.8rem;
+        padding: 0.15rem 0.25rem;
+        color:  var(--mdpopups-fg);
+        background-color: var(--ch-button-color);
+        border-radius: 0.25rem;
+    }
+
+    .color-helper a.button.selected {
+        border: 1px solid color(var(--mdpopups-fg) a(75%));
+    }
+
+    .color-helper hr {
+        border-color: var(--ch-button-color);
+    }
+
+    .color-helper .center {
+        text-align: center;
+    }
+
+    .color-helper a.fav {
+        font-size: 2rem;
+        line-height: 2rem;
+        padding: 0.15rem 0.25rem;
+        color:  var(--mdpopups-fg);
+    }
+
+    .color-helper a.fav.unselected {
+        color:  color(var(--mdpopups-fg) a(25%));
+    }
+
+    .color-helper div.menu a.close {
+        background-color: var(--mdpopups-fg);
+        padding: 0.1rem 0.25rem;
+        color: var(--mdpopups-bg);
+        border-radius: 0.25rem;
+    }
     '''
 )
 
@@ -113,15 +199,6 @@ def get_line_height(view):
     return int((height / 2.0) if LINE_HEIGHT_WORKAROUND and settings.get('line_height_workaround', False) else height)
 
 
-def color_picker_available():
-    """Check if color picker is available."""
-
-    s = sublime.load_settings('ColorHelper.sublime-settings')
-    s.set('color_pick_return', None)
-    sublime.run_command('color_pick_api_is_available', {'settings': 'ColorHelper.sublime-settings'})
-    return s.get('color_pick_return', None)
-
-
 def get_rules(view):
     """Get auto-popup scope rule."""
 
@@ -146,19 +223,19 @@ def get_scope(view, rules, skip_sel_check=False):
 def get_favs():
     """Get favorites object."""
 
-    bookmark_colors = sublime.load_settings('color_helper.palettes').get("favorites", [])
+    bookmark_colors = sublime.load_settings('ColorHelper.palettes').get("favorites", [])
     return {"name": "Favorites", "colors": bookmark_colors}
 
 
 def save_palettes(palettes, favs=False):
     """Save palettes."""
 
-    s = sublime.load_settings('color_helper.palettes')
+    s = sublime.load_settings('ColorHelper.palettes')
     if favs:
         s.set('favorites', palettes)
     else:
         s.set('palettes', palettes)
-    sublime.save_settings('color_helper.palettes')
+    sublime.save_settings('ColorHelper.palettes')
 
 
 def save_project_palettes(window, palettes):
@@ -175,7 +252,7 @@ def save_project_palettes(window, palettes):
 def get_palettes():
     """Get palettes."""
 
-    return sublime.load_settings('color_helper.palettes').get("palettes", [])
+    return sublime.load_settings('ColorHelper.palettes').get("palettes", [])
 
 
 def get_project_palettes(window):

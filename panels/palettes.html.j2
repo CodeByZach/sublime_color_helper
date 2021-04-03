@@ -1,0 +1,55 @@
+<div class="menu" markdown="1">
+[&#215;]({{plugin.back_target}}){.close}
+{%- if plugin.show_delete_menu %}
+[Delete](__delete__palettes__)
+{%- endif %}
+{%- if plugin.show_add_option and not plugin.show_new_ui and not plugin.show_delete_ui %}
+[Save Current Color](__add_color__:{{plugin.generic_color}})
+{%- endif %}
+{%- if plugin.show_new_ui and (plugin.show_project_palettes or plugin.show_global_palettes) %}
+  {%- if plugin.show_global_palettes %}
+[New Palette](__create_palette__:__global__:{{plugin.color}})
+  {%- endif %}
+  {%- if plugin.show_project_palettes %}
+[New Project Palette](__create_palette__:__project__:{{plugin.color}})
+  {%- endif %}
+{%- endif %}
+</div>
+
+<div class="panel" markdown="1">
+{%- if plugin.show_delete_ui %}
+
+## Delete Palete {.center}
+
+{%- elif plugin.show_new_ui %}
+
+## Save to palette {.center}
+
+{%- else %}
+
+## View palette {.center}
+
+{%- endif %}
+</div>
+
+<div class="panel center palettes" markdown="1">
+{%- if plugin.show_favorite_palette %}
+---
+
+{{plugin.favorite_palette}}
+{%- endif %}
+
+{% for palette in plugin.global_palettes %}
+---
+
+{{palette}}
+
+{% endfor %}
+
+{% for palette in plugin.project_palettes %}
+---
+
+{{palette}}
+
+{% endfor %}
+</div>

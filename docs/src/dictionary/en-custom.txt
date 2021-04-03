@@ -1,6 +1,8 @@
 ASE
 CSS
 Changelog
+ColorAide
+ColorAide's
 ColorHelper
 ColorMod
 ColorPicker
@@ -13,8 +15,10 @@ HWB
 HiDPI
 Inline
 JSON
+KDE
 LCH
 MERCHANTABILITY
+MacOS
 MkDocs
 Multiconf
 NONINFRINGEMENT
@@ -43,6 +47,7 @@ inline
 installable
 lowercased
 luminance
+macOS
 matthjes
 multiconf
 overlayed
@@ -60,6 +65,7 @@ subclassing
 sublicense
 tooltip
 tooltips
+un
 unsaturate
 uppercased
 viewable

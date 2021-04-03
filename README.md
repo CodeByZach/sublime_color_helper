@@ -5,8 +5,8 @@
 [![License][license-image]][license-link]
 
 ColorHelper makes working with colors easier by providing inline color previews in your documents (ST3 build 3118+) and
-offers tooltips with color previews, provides color conversion, and allows the storing and accessing of favorite colors
-in color palettes.  It even provides tools for calculating color contrast, mixing, and more.
+offers popups with color previews, color conversion, and allows the storing and accessing of favorite colors in color
+palettes. It even provides tools for calculating color contrast, interpolating between colors, and more.
 
 ![Screenshot1](docs/src/markdown/images/example.png)
 
@@ -18,7 +18,7 @@ in color palettes.  It even provides tools for calculating color contrast, mixin
 - Allow saving, accessing, and managing colors in named color palettes all from the tooltip.
 - Select and insert colors from the color palettes via the tooltip.
 - Translate an existing color form to a new form the tooltip.  Supports `rgb`, `hsl`, `hwb`, `lch`, `lab`, and more!
-- Color picker, color mixing, color contrast tool, and more!
+- Color picker, color interpolating, color contrast tool, and more!
 
 # Documentation
 
@@ -26,7 +26,7 @@ https://codebyzach.github.io/sublime_color_helper/
 
 # License
 
-ColorHelper is released under the MIT license.
+ColorHelper is released under the [MIT License](LICENSE).
 
 [release-image]: https://img.shields.io/github/tag/CodeByZach/sublime_color_helper.svg?label=version
 [release-link]: https://github.com/CodeByZach/sublime_color_helper/releases

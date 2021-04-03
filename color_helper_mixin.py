@@ -4,7 +4,7 @@ import mdpopups
 from . import color_helper_util as util
 from .color_helper_util import HEX, HEX_NA
 from .multiconf import get as qualify_settings
-from coloraide import Color
+from .lib.coloraide import Color
 from collections import namedtuple
 
 SPACER = Color("transparent", filters=util.SRGB_SPACES).to_string(**HEX)
@@ -71,7 +71,7 @@ class _ColorMixin:
                     class_options = self.color_classes.get(item["class"])
                     if class_options is None:
                         continue
-                    module = class_options.get("class", "coloraide.Color")
+                    module = class_options.get("class", "ColorHelper.lib.coloraide.Color")
                     if isinstance(module, str):
                         # Initialize the color module and cache it for this view
                         color_class = util.import_color(module)
@@ -138,20 +138,22 @@ class _ColorMixin:
             top_pad = 0
         if bottom_pad is None:
             bottom_pad = 0
-        box_height = self.line_height - int(top_pad + bottom_pad) - 6
+        box_height = self.line_height - int(top_pad + bottom_pad)
 
         # Scale size
         if self.graphic_scale is not None:
             box_height = box_height * self.graphic_scale
-            self.graphic_size = "small"
-        small = max(box_height, 8)
-        medium = max(box_height * 1.5, 8)
-        large = max(box_height * 2, 8)
-        sizes = {
-            "small": (int(small), int(small)),
-            "medium": (int(medium), int(medium)),
-            "large": (int(large), int(large))
-        }
+            self.graphic_size = "medium"
+            sizes = {"medium": (int(box_height), int(box_height))}
+        else:
+            small = max(box_height * 0.75, 8)
+            medium = max(box_height * 1, 8)
+            large = max(box_height * 1.25, 8)
+            sizes = {
+                "small": (int(small), int(small)),
+                "medium": (int(medium), int(medium)),
+                "large": (int(large), int(large))
+            }
         self.height, self.width = sizes.get(
             self.graphic_size,
             sizes["medium"]

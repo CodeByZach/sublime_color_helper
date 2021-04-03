@@ -1,7 +1,7 @@
 """Custon color that looks for colors of format `#RRGGBBAA` as `#AARRGGBB`."""
-from coloraide.colors import Color, SRGB
-from coloraide.colors import _parse as parse
-from coloraide import util
+from ..lib.coloraide.colors import Color, SRGB
+from ..lib.coloraide.colors import _parse as parse
+from ..lib.coloraide import util
 import copy
 import re
 
@@ -36,20 +36,18 @@ class HexSRGB(SRGB):
         # Unless it explicitly starts with `0x` we will assume it is a int/float.
         if -1 <= channel <= 2:
             return norm_hex_channel(value)
-        else:
-            raise ValueError("Unexpected channel index of '{}'".format(channel))
 
     @classmethod
     def split_channels(cls, color):
         """Split channels."""
 
         return cls.null_adjust(
-            [
+            (
                 cls.translate_channel(0, '0x' + color[2:4]),
                 cls.translate_channel(1, '0x' + color[4:6]),
-                cls.translate_channel(2, '0x' + color[6:8]),
-                cls.translate_channel(-1, '0x' + color[8:]) if len(color) > 8 else 1.0
-            ]
+                cls.translate_channel(2, '0x' + color[6:8])
+            ),
+            cls.translate_channel(-1, '0x' + color[8:]) if len(color) > 8 else 1.0
         )
 
     def to_string(
@@ -62,7 +60,7 @@ class HexSRGB(SRGB):
         show_alpha = alpha is not False and (alpha is True or a < 1.0)
 
         template = "0x{:02x}{:02x}{:02x}{:02x}" if show_alpha else "0x{:02x}{:02x}{:02x}"
-        if options.get("hex_upper"):
+        if options.get("upper"):
             template = template.upper()
 
         coords = util.no_nan(self.fit_coords())

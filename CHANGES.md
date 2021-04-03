@@ -1,5 +1,102 @@
 # ColorHelper
 
+## 3.3.2
+
+- **FIX**: Fix typo. `0xahex` color class should have been named `0xhex` in the  
+  settings.
+
+## 3.3.1
+
+- **FIX**: Ensure that contrast related functions are using XYZ with D65 white  
+  point instead of D50 in order to match WCAG 2.1 specifications.
+- **FIX**: Fix some string output issues.
+- **FIX**: Fix some algorithmic issues with Delta E 2000 which affects gamut  
+  mapping.
+
+## 3.3.0
+
+- **NEW**: `preview_on_select` now supports multi-select.
+- **NEW**: Color picker channels only show 10 steps back or forward at a given  
+  time instead of 12 and are always perfectly scaled between 0% - 100%.
+- **NEW**: Color box now shows hue on x-axis and saturation on y-axis. It also  
+  replaces the gray scale bar with a lightness bar.
+- **NEW**: Color picker now is more compact and hides the sliders unless the  
+  user switches to slider mode. In that case, the color box will be hidden.
+- **NEW**: Only the color picker's alpha channel will show a representation of  
+  transparency. This allows the user to clearly see the color when adjusting  
+  other channels.
+- **NEW**: Color box in the color picker now shows an approximate indicator of  
+  where the current color falls on the color box.
+- **NEW**: Add indication of which button is selected in the color picker.
+- **NEW**: Vendor `coloraide` as ColorHelper is tightly coupled to it. Vendoring  
+  will ensure a better upgrade process. The default color classe is now referenced  
+  via `ColorHelper.lib.coloraide` opposed to the old `coloraide`.
+- **FIX**: Fix issues related to detecting when colors are in the visible viewport.
+- **FIX**: Ensure that when a native color picker is called with no color, that if  
+  the default color is picked, it will insert instead of ignore.
+
+## 3.2.2
+
+- **FIX**: Increase precision of palettes to properly match and store any colors.
+
+## 3.2.1
+
+- **FIX**: Ensure adding a color to a palette isn't shown when deleting palettes.
+
+## 3.2.0
+
+- **NEW**: Convert popup now lets you copy a color or insert a color.
+- **NEW**: More tweaks to popup styles.
+- **NEW**: Palette features, such as inserting a color from a palette and saving  
+  a color to a palette, are all available under the `palette` menu option from  
+  the main toolip. This consolidates options and makes the panel a bit more compact.
+- **NEW**: Show current channel value in color picker's high resolution selector.
+- **FIX**: Make "Out of gamut" tooltip more clear that it is referring to the preview  
+  gamut.
+- **FIX**: Palettes colors were inconsistently saved and compared. This caused colors  
+  that were saved to "favorites" to sometimes not appear saved.
+- **FIX**: Adjust scaling of images in regards to the `graphic_size` option. Medium  
+  should be a scale of 1, small a scale of 0.75, large a scale of 1.25. For greater  
+  control, use `graphic_scale`.
+- **FIX**: Windows color picker should use `ctypes.pointer` not `ctypes.byref`. Fixes  
+  Windows color picker not working on ST4.
+
+## 3.1.4
+
+- **FIX**: Fix `tmTheme` handling of compressed hex colors.
+
+## 3.1.3
+
+- **FIX**: A few fixes to new style.
+
+## 3.1.2
+
+- **FIX**: Improved visuals for popups and `TextInputHandlers`. Improve consistency  
+  in how things are presented.
+- **FIX**: In color picker, values in the hue channel should clamp at 359 not 360 as  
+  360 wraps to 0.
+- **FIX**: Fix a few transitions between different popups.
+
+## 3.1.1
+
+- **FIX**: Fix Windows color picker not processing color properly.
+- **FIX**: Make sure Windows color picker stores and retrieves custom colors.
+
+## 3.1.0
+
+- **NEW**: Drop support for ColorPicker package and instead implement OS color pickers  
+  directly in ColorHelper. Linux users will need to install [`kcolorchooser`](https://apps.kde.org/en/kcolorchooser),  
+  and it must be in the path on the command line
+
+## 3.0.2
+
+- **FIX**: Fix typo in color trigger pattern in 3.0.1 fix.
+
+## 3.0.1
+
+- **FIX**: Ignore color keywords when they are preceded by `$` (SCSS). Also fix issue  
+  with `-` trailing a keyword.
+
 ## 3.0.0
 
 - **NEW**: New supported color spaces: `lch`, `lab`, `display-p3`, `rec-2020`, `xyz`,  
@@ -24,20 +121,20 @@
   they alter the coordinates, and allows the user to mix it with one other color. The  
   result can be inserted back into the file, or will be handed back to the color picker  
   if called from there.
-- **NEW**: New color contrast tool which allows a user to see the contrast ration and  
+- **NEW**: New color contrast tool which allows a user to see the contrast ratio and  
   see a visual representation of how the two colors contrast. The resulting foreground  
   color can be inserted back into the file, or will be handed back to the color picker  
   if called from there.
-- **NEW**: New Sublime ColorMod tool which allows a user to see a `color-mod` expression
+- **NEW**: New Sublime ColorMod tool which allows a user to see a `color-mod` expression  
   update a live color preview on the fly.
 - **NEW**: Only one color rule (defined in the settings file) will apply to a given view.
 - **NEW**: Renamed `color_scan` option to `color_rule`.
 - **NEW**: Massive overhaul of color scanning and color scanning options.
 - **NEW**: Colors that are out of gamut will be gamut mapped. On hover of the preivew  
-  (on ST4) it will indicate that it has been gamut mapped. This can be disabled via  
-  `show_out_of_gamut_preview`, and instead a fully transparent color swatch with a  
-  "red-ish" border will be shown (color may vary based on color scheme). On mouse over  
-  it will indicate that it is out of gamut (on ST4).
+  (on ST4), it will indicate that it has been gamut mapped. This can be changed via  
+  `show_out_of_gamut_preview`, and additionally a fully transparent color swatch with a  
+  "red-ish" border will be shown (color may vary based on color scheme). On mouse over,  
+  it will also indicate that it is out of gamut on ST4.
 - **NEW**: ColorHelper will now gamut map colors in some scenarios, either due to  
   necessity, or by user setting.
 - **NEW**: New `generic` option is defined which provides a default input and output for  
@@ -47,29 +144,28 @@
 - **NEW**: New command added to force scanning in a file that may have scanning disabled.  
   Also can force a file with scanning enabled to be disabled.
 - **NEW**: Color helper will now recognize `transparent`.
-- **NEW**: Color picker rainbow box will adjust based on the saturation of the currently,  
+- **NEW**: Color picker rainbow box will adjust based on the saturation of the current  
   selected color.
 - **NEW**: Color picker will give a clear indication when you are at the end of a color  
-  channel.
-- **NEW**: Provide `user_color_rules` where user can append rules without overwriting the  
+  channel by showing no more boxes.
+- **NEW**: Provide `user_color_rules` where a user can append rules without overwriting the  
   entire rule set. If a rule uses the same `name` as one of the existing default rules,  
   a shallow merge will be done so the values of the top level keys will be overridden  
   with the user keys and/or any additional keys will be added.
 - **REMOVED**: Color completion. It mainly got in the way. The palette can be called any  
-  time the user needs it already.
+  time the user needs it.
 - **REMOVED**: Hex shaped color picker option has been removed.
 - **REMOVED**: Removed "current file palette". ColorHelper will no longer scan the entire  
   current file and generate a palette. This only worked in a limited number of files and  
   added much more complexity.
 - **REMOVED**: Various options from rules sets. These are now controlled by the color  
   class object that is being used. For instance, input and output format of colors in the  
-  form `#AARRGGBB` instead of the default `#RRGGBBAA` would need need to use the new  
-  example `ColorHelper.custom.ahex.ColorAhex` custom color object to read in and output  
-  hex colors with leading alpha channels.
+  form `#AARRGGBB` instead of the default `#RRGGBBAA` would need to use the new example  
+  `ColorHelper.custom.ahex.ColorAhex` custom color object to read in and output hex colors  
+  with leading alpha channels.
 - **FIX**: Insert logic issues.
 - **FIX**: ColorPicker now will always work in the color space of the current mode. This  
-  will prevent HSL and HWB from losing their hue angle if saturation is reduced to zero  
-  and then back up again.
+  fixes some conversion issues.
 
 ## 2.7.1
 

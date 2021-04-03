@@ -3,7 +3,7 @@
 ## `color_rules`
 
 The `color_rules` option configures how ColorHelper interacts with a given file. In order for ColorHelper to inject
-color previews, translate colors, and various other tasks it needs context, and rules provide that context.
+color previews, translate colors, and various other tasks, it needs context, and rules provide that context.
 
 ```js
     "color_rules": [
@@ -40,7 +40,7 @@ given view at a time.
 
 ### `name`
 
-Optional name. If a user creates a rule in `user_color_rules`, and it it shares the same `name` as a rule under 
+Optional name. If a user creates a rule in `user_color_rules`, and it it shares the same `name` as a rule under
 `color_rules`, a shallow merge of the two rules will be made which will allow the user rule to override the values
 of top level keys.
 
@@ -48,7 +48,7 @@ of top level keys.
     "name": "HTML/CSS",
 ```
 
-### `sytnax_files`
+### `syntax_files`
 
 Target a view using a syntax file from the given list. Defaults to an empty list.
 

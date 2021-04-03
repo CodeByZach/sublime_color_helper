@@ -27,6 +27,8 @@ nav:
     - Overview: index.md
     - Installation: installation.md
     - User Guide: usage.md
+  - FAQ:
+    - Frequently Asked Questions: faq.md
   - Settings:
     - Configuring ColorHelper: settings/index.md
     - Graphic Rendering: settings/graphics.md
@@ -37,6 +39,7 @@ nav:
     - Rules: settings/rules.md
   - About:
     - Contributing &amp; Support: about/contributing.md
+    - Changelog: https://github.com/facelessuser/ColorHelper/blob/master/CHANGES.md
     - License: about/license.md
 
 markdown_extensions:
