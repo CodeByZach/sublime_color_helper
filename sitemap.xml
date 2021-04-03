@@ -1,23 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url>
      <loc>https://codebyzach.github.io/sublime_color_helper/</loc>
-     <lastmod>2021-03-09</lastmod>
+     <lastmod>2021-04-03</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://codebyzach.github.io/sublime_color_helper/installation/</loc>
-     <lastmod>2021-03-09</lastmod>
+     <lastmod>2021-04-03</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://codebyzach.github.io/sublime_color_helper/usage/</loc>
-     <lastmod>2021-03-09</lastmod>
+     <lastmod>2021-04-03</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
-     <loc>https://codebyzach.github.io/sublime_color_helper/contributing/</loc>
-     <lastmod>2021-03-09</lastmod>
+     <loc>https://codebyzach.github.io/sublime_color_helper/faq/</loc>
+     <lastmod>2021-04-03</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
-     <loc>https://codebyzach.github.io/sublime_color_helper/license/</loc>
-     <lastmod>2021-03-09</lastmod>
+     <loc>https://codebyzach.github.io/sublime_color_helper/settings/</loc>
+     <lastmod>2021-04-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url><url>
+     <loc>https://codebyzach.github.io/sublime_color_helper/settings/graphics/</loc>
+     <lastmod>2021-04-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url><url>
+     <loc>https://codebyzach.github.io/sublime_color_helper/settings/previews/</loc>
+     <lastmod>2021-04-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url><url>
+     <loc>https://codebyzach.github.io/sublime_color_helper/settings/color_picker/</loc>
+     <lastmod>2021-04-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url><url>
+     <loc>https://codebyzach.github.io/sublime_color_helper/settings/palettes/</loc>
+     <lastmod>2021-04-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url><url>
+     <loc>https://codebyzach.github.io/sublime_color_helper/settings/tools/</loc>
+     <lastmod>2021-04-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url><url>
+     <loc>https://codebyzach.github.io/sublime_color_helper/settings/rules/</loc>
+     <lastmod>2021-04-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url><url>
+     <loc>https://codebyzach.github.io/sublime_color_helper/about/contributing/</loc>
+     <lastmod>2021-04-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url><url>
+     <loc>https://codebyzach.github.io/sublime_color_helper/about/license/</loc>
+     <lastmod>2021-04-03</lastmod>
      <changefreq>daily</changefreq>
     </url>
 </urlset>
