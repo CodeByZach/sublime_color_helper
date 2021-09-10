@@ -1,5 +1,15 @@
 # ColorHelper
 
+## 3.6.1
+
+- **FIX**: Fix issues with [Advanced Substation Alpha (ASS)](https://packagecontrol.io/packages/Advanced%20Substation%20Alpha%20(ASS)) 
+  support.
+- **FIX**: Remove unnecessary dependencies.
+
+## 3.6.0
+
+- **NEW**: Add support for [Advanced Substation Alpha (ASS)](https://packagecontrol.io/packages/Advanced%20Substation%20Alpha%20(ASS)).
+
 ## 3.5.0
 
 - **NEW**: `generic` rule will now allow scanning in strings by default. If this  
@@ -13,6 +23,9 @@
   channels must require those channels to be input as percentages per the CSS  
   level 4 specifications. This affects the string output for the `color()` format  
   as well.
+- **FIX**: Latest `coloraide` improves gamut mapping.
+- **FIX**: Small gamut fitting adjustments.
+- **FIX**: Fix issue with duplicate previews when working with clone views.
 
 ## 3.4.0
 

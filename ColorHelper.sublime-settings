@@ -211,6 +211,14 @@
             "output": [
                 {"space": "srgb", "format": {"hex": true}}
             ]
+        },
+        // for color codes like `&HAABBGGRR` and `&HBBGGRR`
+        "ass_abgr": {
+            "class": "ColorHelper.custom.ass_abgr.ColorAssABGR",
+            "filters": ["srgb"],
+            "output": [
+                {"space": "srgb", "format": {"upper": true}}
+            ]
         }
     },
 
@@ -280,7 +288,7 @@
                 "PackageDev/Package/Sublime Text Theme/Sublime Text Theme"
             ],
             "color_class": "sublime-colormod",
-            "color_trigger": "(?i)(?:\\b(?<![-#&$])(?:color|hsla?|hwb|rgba?)\\(|\\b(?<![-#&$])[\\w]{3,}(?![(-])\\b|(?!<&)\\#)",
+            "color_trigger": "(?i)(?:\\b(?<![-#&$])(?:color\\((?!\\s*-)|(?:hsla?|hwb|rgba?)\\()|\\b(?<![-#&$])[\\w]{3,}(?![(-])\\b|(?!<&)\\#)",
             "scanning": [
                 "source.css-color -meta.function-call.var.sublime-color-scheme -meta.function-call.var.css",
                 "meta.css.sublime-color-scheme meta.property-value.css -comment -string.quoted.single.css -string.quoted.double.css"
@@ -379,6 +387,14 @@
                 "constant.color.w3c-standard-color-name.css",
                 "meta.property-value.css"
             ]
+        },
+        {
+            // ASS ( based on: https://packagecontrol.io/packages/Advanced%20Substation%20Alpha%20(ASS) )
+            "name": "ASS",
+            "base_scopes": ["text.ass"],
+            "scanning": ["constant.other.color"],
+            "color_class": "ass_abgr",
+            "color_trigger": "(?:&H|(?<=\\\\[1-4]c)|(?<=\\\\c))[0-9a-fA-F]"
         }
     ],
 

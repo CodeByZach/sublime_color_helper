@@ -1,4 +1,4 @@
-# ColorHelper 3.3.0
+# ColorHelper 3.6.0
 
 New release!
 
@@ -7,20 +7,9 @@ prior releases.
 
 Restart of Sublime Text may be required.
 
-## 3.4.0
+## 3.6.0
 
-- **NEW**: New color difference tool.
-- **NEW**: New blend modes tool.
-- **NEW**: Fix typo. `0xahex` color class should have been named `0xhex` in the  
-  settings.
-- **NEW**: New `coloraide` brings support for `oklab`, `oklch`, `jzazbz`, `jzczhz`,  
-  `ICtCp`, D65 variations of CIELAB, CIELCH, and XYZ (none of which are enabled  
-  as output options by default).
-- **NEW**: Some refactoring of `coloraide` caused custom color classes to get  
-  updated. User created custom classes may have to get updated to work.
-- **FIX**: Upgrade `coloraide` which fixes issues related to inconsistent use of  
-  D65 white values in XYZ transforms and Bradford CAT and other lesser bug fixes  
-  as well. This particularly improves conversions to and from CIELAB.
+- **NEW**: Add support for [Advanced Substation Alpha (ASS)](https://packagecontrol.io/packages/Advanced%20Substation%20Alpha%20(ASS)).
 
 ## Updated from 2.0 to 3.0?
 

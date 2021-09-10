@@ -2,7 +2,6 @@
 from abc import ABCMeta
 from .. import util
 from . import _parse
-from . import _cat
 
 # Technically this form can handle any number of channels as long as any
 # extra are thrown away. We only support 6 currently. If we ever support
@@ -10,11 +9,25 @@ from . import _cat
 RE_DEFAULT_MATCH = r"""(?xi)
 color\(\s*
 (?:({{color_space}})\s+)?
-((?:{percent}|{float})(?:{space}(?:{percent}|{float})){{{{,6}}}}(?:{slash}(?:{percent}|{float}))?)
+((?:{percent}|{float})(?:{space}(?:{percent}|{float})){{{{,{{channels:d}}}}}}(?:{slash}(?:{percent}|{float}))?)
 \s*\)
 """.format(
     **_parse.COLOR_PARTS
 )
+
+WHITES = {
+    "A": [1.09850, 1.00000, 0.35585],
+    "B": [0.99072, 1.00000, 0.85223],
+    "C": [0.98074, 1.00000, 1.18232],
+    "D50": [0.96422, 1.00000, 0.82521],
+    "D55": [0.95682, 1.00000, 0.92149],
+    "D65": [0.95047, 1.00000, 1.08883],
+    "D75": [0.94972, 1.00000, 1.22638],
+    "E": [1.00000, 1.00000, 1.00000],
+    "F2": [0.99186, 1.00000, 0.67393],
+    "F7": [0.95041, 1.00000, 1.08747],
+    "F11": [1.00962, 1.00000, 0.64350]
+}
 
 
 class Angle(float):
@@ -23,6 +36,10 @@ class Angle(float):
 
 class Percent(float):
     """Percent type."""
+
+
+class OptionalPercent(float):
+    """Optional percent type."""
 
 
 class GamutBound(tuple):
@@ -49,6 +66,8 @@ class Space(
 
     # Color space name
     SPACE = ""
+    # Serialized name
+    SERIALIZE = None
     # Number of channels
     NUM_COLOR_CHANNELS = 3
     # Channel names
@@ -69,7 +88,7 @@ class Space(
     #   space, the values can be greatly out of specification (looking at you HSL).
     GAMUT_CHECK = None
     # White point
-    WHITE = _cat.WHITES["D50"]
+    WHITE = "D50"
 
     def __init__(self, color, alpha=None):
         """Initialize."""
@@ -106,7 +125,7 @@ class Space(
             values.append(value)
 
         return 'color({} {} / {})'.format(
-            self.space(),
+            self._serialize()[0],
             ' '.join(values),
             util.fmt_float(util.no_nan(self.alpha), util.DEF_PREC)
         )
@@ -132,10 +151,16 @@ class Space(
         return cls.SPACE
 
     @classmethod
+    def _serialize(cls):
+        """Get the serialized name."""
+
+        return (cls.space(),) if cls.SERIALIZE is None else cls.SERIALIZE
+
+    @classmethod
     def white(cls):
         """Get the white color for this color space."""
 
-        return cls.WHITE
+        return WHITES[cls.WHITE]
 
     @property
     def alpha(self):
@@ -189,9 +214,11 @@ class Space(
             values.append(value)
 
         if alpha:
-            return template.format(self.space(), ' '.join(values), util.fmt_float(a, max(precision, util.DEF_PREC)))
+            return template.format(
+                self._serialize()[0], ' '.join(values), util.fmt_float(a, max(precision, util.DEF_PREC))
+            )
         else:
-            return template.format(self.space(), ' '.join(values))
+            return template.format(self._serialize()[0], ' '.join(values))
 
     @classmethod
     def null_adjust(cls, coords, alpha):
@@ -207,7 +234,7 @@ class Space(
         if (
             m is not None and
             (
-                (m.group(1) and m.group(1).lower() == cls.space())
+                (m.group(1) and m.group(1).lower() in cls._serialize())
             ) and (not fullmatch or m.end(0) == len(string))
         ):
 
@@ -222,8 +249,13 @@ class Space(
             for i, c in enumerate(_parse.RE_CHAN_SPLIT.split(split[0]), 0):
                 if c and i < cls.NUM_COLOR_CHANNELS:
                     is_percent = isinstance(cls.RANGE[i][0], Percent)
-                    if is_percent and not c.endswith('%'):
+                    is_optional_percent = isinstance(cls.RANGE[i][0], OptionalPercent)
+                    has_percent = c.endswith('%')
+                    if is_percent and not has_percent:
                         # We have an invalid percentage channel
+                        return None, None
+                    elif (not is_percent and not is_optional_percent) and has_percent:
+                        # Percents are not allowed for this channel.
                         return None, None
                     channels.append(_parse.norm_color_channel(c, not is_percent))
 
