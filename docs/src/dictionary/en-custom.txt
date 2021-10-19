@@ -45,6 +45,7 @@ TODO
 Twemoji
 Unescape
 argb
+basename
 biermeester
 boolean
 changelog
@@ -52,16 +53,19 @@ clickable
 cmd
 coloraide
 ctrl
+dirname
 emoji
 grayscale
 inline
 installable
 ish
+kwargs
 lowercased
 luminance
 macOS
 matthjes
 multiconf
+os
 overlayed
 plugin
 plugins
@@ -70,8 +74,8 @@ popups
 pre
 prerelease
 requesters
-sRGB
 scrollable
+sRGB
 stylesheet
 subclassing
 sublicense
