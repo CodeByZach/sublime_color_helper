@@ -1,10 +1,34 @@
 """Distance and Delta E."""
-from . import distance_euclidean
-from . import delta_e_76  # noqa: F401
-from . import delta_e_94  # noqa: F401
-from . import delta_e_cmc  # noqa: F401
-from . import delta_e_2000  # noqa: F401
-from . import delta_e_itp  # noqa: F401
+from abc import ABCMeta, abstractmethod
+from ... import util
+import math
+
+
+def distance_euclidean(color, sample, space="lab"):
+    """
+    Euclidean distance.
+
+    https://en.wikipedia.org/wiki/Euclidean_distance
+    """
+
+    coords1 = util.no_nan(color.convert(space).coords())
+    coords2 = util.no_nan(sample.convert(space).coords())
+
+    return math.sqrt(sum((x - y) ** 2.0 for x, y in zip(coords1, coords2)))
+
+
+class DeltaE(ABCMeta):
+    """Delta E plugin class."""
+
+    @staticmethod
+    @abstractmethod
+    def name():
+        """Get name of method."""
+
+    @staticmethod
+    @abstractmethod
+    def distance(color, sample, **kwargs):
+        """Get distance between color and sample."""
 
 
 class Distance:
@@ -20,14 +44,12 @@ class Distance:
         algorithm = method.lower()
 
         try:
-            de = globals()['delta_e_{}'.format(algorithm.replace('-', '_'))]
+            return self.DE_MAP[algorithm](self, color, **kwargs)
         except KeyError:
             raise ValueError("'{}' is not currently a supported distancing algorithm.".format(algorithm))
-
-        return de.distance(self, color, **kwargs)
 
     def distance(self, color, *, space="lab"):
         """Delta."""
 
         color = self._handle_color_input(color)
-        return distance_euclidean.distance(self, color, space=space)
+        return distance_euclidean(self, color, space=space)

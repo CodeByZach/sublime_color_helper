@@ -40,7 +40,7 @@ nav:
     - Rules: settings/rules.md
   - About:
     - Contributing &amp; Support: about/contributing.md
-    - Changelog: https://github.com/facelessuser/ColorHelper/blob/master/CHANGES.md
+    - Changelog: https://github.com/CodeByZach/sublime_color_helper/blob/master/CHANGES.md
     - License: about/license.md
 
 markdown_extensions:
@@ -95,6 +95,7 @@ markdown_extensions:
       separator: "\uff0b"
   - pymdownx.details:
   - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.saneheaders:
 
 extra:

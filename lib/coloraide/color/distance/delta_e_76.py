@@ -1,16 +1,25 @@
 """Delta E 76."""
+from ..distance import DeltaE, distance_euclidean
 
-from . import distance_euclidean
 
+class DE76(DeltaE):
+    """Delta E 76 class."""
 
-def distance(color1, color2, **kwargs):
-    """
-    Delta E 1976 color distance formula.
+    @staticmethod
+    def name():
+        """Name of method."""
 
-    http://www.brucelindbloom.com/index.html?Eqn_DeltaE_CIE76.html
+        return "76"
 
-    Basically this is Euclidean distance in the Lab space.
-    """
+    @staticmethod
+    def distance(color, sample, **kwargs):
+        """
+        Delta E 1976 color distance formula.
 
-    # Equation (1)
-    return distance_euclidean.distance(color1, color2, space="lab")
+        http://www.brucelindbloom.com/index.html?Eqn_DeltaE_CIE76.html
+
+        Basically this is Euclidean distance in the Lab space.
+        """
+
+        # Equation (1)
+        return distance_euclidean(color, sample, space="lab")

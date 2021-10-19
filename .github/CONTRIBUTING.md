@@ -1,1 +1,1 @@
-Please follow this link to see Contributing &amp; Support documentation: https://codebyzach.github.io/sublime_color_helper/contributing/.
+Please follow this link to see Contributing &amp; Support documentation: [codebyzach.github.io/sublime_color_helper/about/contributing](https://codebyzach.github.io/sublime_color_helper/about/contributing/).

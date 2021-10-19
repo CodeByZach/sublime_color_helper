@@ -14,6 +14,7 @@ EmojiOne
 GitHub
 HREF
 HSL
+HSV
 HWB
 HiDPI
 ITP
@@ -27,6 +28,10 @@ MacOS
 MkDocs
 Multiconf
 NONINFRINGEMENT
+Okhsl
+Okhsv
+Oklab
+PNG
 Popup
 Popups
 PyMdown
@@ -35,6 +40,7 @@ RGBA
 SCSS
 Screencap
 Screenshot
+Sublime's
 TODO
 Twemoji
 Unescape

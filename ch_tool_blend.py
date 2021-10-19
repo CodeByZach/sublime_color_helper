@@ -3,6 +3,7 @@ import sublime
 import sublime_plugin
 from .lib.coloraide import Color
 import mdpopups
+from .lib import colorbox
 from . import ch_util as util
 from .ch_mixin import _ColorMixin
 import copy
@@ -23,13 +24,13 @@ markdown_extensions:
 
 ## Instructions
 
-Colors can be specified in any supported color space, but blend modes work best on<br>
-RGB-ish colors spaces. They can be converted and output to another color space with<br>
-<code>@colorspace</code>.
+Colors are blended in sRGB color space unless a different space is specified<br>
+by <code>@colorspace</code>. Colors will be gamut mapped to the specified color space.<br>
+Blend modes are designed for RGB-ish color spaces, even if the accepts other<br>
+spaces.
 
 If two colors are provided, joined with <code>+</code>, the colors will be blended.<br>
-Default blend mode is <code>normal</code>, but can be changed with<br>
-<code>!blendmode</code>.
+Default blend mode is <code>normal</code>, but can be changed with <code>!blendmode</code>.
 
 Transparent backdrops will be <code>normal</code> blended with white.
 """
@@ -175,31 +176,36 @@ class ColorHelperBlendModeInputHandler(tools._ColorInputHandler):
 
             html = ""
             for color in colors:
-                orig = Color(color)
+                pcolor = Color(color)
                 message = ""
                 color_string = ""
-                check_space = 'srgb' if orig.space() not in util.SRGB_SPACES else orig.space()
-                if not orig.in_gamut(check_space):
-                    orig = orig.fit("srgb")
+                if self.gamut_space == 'srgb':
+                    check_space = self.gamut_space if pcolor.space() not in util.SRGB_SPACES else pcolor.space()
+                else:
+                    check_space = self.gamut_space
+                if not pcolor.in_gamut(check_space):
+                    pcolor.fit(self.gamut_space, in_place=True)
                     message = '<br><em style="font-size: 0.9em;">* preview out of gamut</em>'
-                    color_string = "<strong>Gamut Mapped</strong>: {}<br>".format(orig.to_string())
-                srgb = orig.convert('srgb', fit=True)
+                    color_string = "<strong>Gamut Mapped</strong>: {}<br>".format(pcolor.to_string())
+                pcolor.convert(self.gamut_space, fit=True, in_place=True)
                 color_string += "<strong>Color</strong>: {}".format(color.to_string(**util.DEFAULT))
-                preview = srgb.to_string(**util.HEX_NA)
-                preview_alpha = srgb.to_string(**util.HEX)
+                preview = pcolor.clone().set('alpha', 1)
+                preview_alpha = pcolor
                 preview_border = self.default_border
                 temp = Color(preview_border)
                 if temp.luminance() < 0.5:
-                    second_border = temp.mix('white', 0.25, space="srgb").to_string(**util.HEX_NA)
+                    second_border = temp.mix('white', 0.25, space=self.gamut_space, out_space=self.gamut_space)
+                    second_border.set('alpha', 1)
                 else:
-                    second_border = temp.mix('black', 0.25, space="srgb").to_string(**util.HEX_NA)
+                    second_border = temp.mix('black', 0.25, space=self.gamut_space, out_space=self.gamut_space)
+                    second_border.set('alpha', 1)
 
                 height = self.height * 3
                 width = self.width * 3
                 check_size = self.check_size(height, scale=8)
 
                 html += tools.PREVIEW_IMG.format(
-                    mdpopups.color_box(
+                    colorbox.color_box(
                         [preview, preview_alpha],
                         preview_border, second_border,
                         border_size=2, height=height, width=width, check_size=check_size

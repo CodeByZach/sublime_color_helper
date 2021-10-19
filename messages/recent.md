@@ -1,4 +1,4 @@
-# ColorHelper 3.6.0
+# ColorHelper 3.8.0
 
 New release!
 
@@ -7,15 +7,15 @@ prior releases.
 
 Restart of Sublime Text may be required.
 
-## 3.6.0
+## 3.8.0
 
-- **NEW**: Add support for [Advanced Substation Alpha (ASS)](https://packagecontrol.io/packages/Advanced%20Substation%20Alpha%20(ASS)).
-
-## Updated from 2.0 to 3.0?
-
-ColorHelper 3.0 is a major overhaul, so existing settings are likely to break.
-Please checkout the latest documentation to learn what changed and how to
-configure and use the new ColorHelper: https://codebyzach.github.io/sublime_color_helper/.
-
-You may need to run `Package Control: Satisfy Dependencies`, wait until it finishes
-in the console, and then restart Sublime before the latest ColorHelper works.
+- **NEW**: Allow selecting the preview gamut to control what RGB space  
+  images previews are rendered in. For example, before this change,  
+  macOS computers with Display P3 monitors would render sRGB colors  
+  as Display P3 colors and could provide inaccurate previews. Now  
+  you can set `gamut_space` to `display-p3` and sRGB and Display P3  
+  colors will be closer to their actual color. Gamut can be set to  
+  `srgb`, `display-p3`, `a98-rgb`, `prophoto-rgb`, and `rec2020`.  
+  Colors will on only make sense on displays of these types with  
+  the appropriate color profile enabled. Directly related to  
+  https://github.com/sublimehq/sublime_text/issues/4930.

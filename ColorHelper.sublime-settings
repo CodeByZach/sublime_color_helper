@@ -41,14 +41,6 @@
     "click_color_box_to_pick": "none",
 
     //////////////////
-    // Gamut
-    //////////////////
-
-    // Controls whether previews will try to visually show an out of gamut
-    // color by using gamut mapping.
-    "show_out_of_gamut_preview": true,
-
-    //////////////////
     // Palettes
     //////////////////
 
@@ -73,6 +65,20 @@
     // Use native, OS specific color pickers. Linux requires `kcolorchooser`.
     "use_os_color_picker": false,
 
+    // Enable the preferred color picker options: `srgb`, `hsl`, `hsv`, `hwb`, `okhsl`, and `okhsv`
+    // If no valid spaces are specified, `srgb` will be used.
+    "enabled_color_picker_modes": ["srgb", "hsl", "hsv"],
+
+    // If the color is already in the space of an enabled mode, use that mode.
+    // If disabled, the "preferred" mode will be used.
+    "auto_color_picker_mode": true,
+
+    // If "auto" mode is disabled, or the "auto" mode could not determine a suitable picker,
+    // the preferrreed color picker space will be used. If the preferred is invalid, the
+    // first picker from `enabled_color_picker_modes` will be used, and if that is not valid,
+    // `srgb` will be used.
+    "preferred_color_picker_mode": "hsl",
+
     //////////////////
     // Preview
     //////////////////
@@ -94,6 +100,13 @@
     // Controls whether previews will try to visually show an out of gamut
     // color by using gamut mapping.
     "show_out_of_gamut_preview": true,
+
+    // The gamut space to render previews in.
+    // Supported spaces are: `srgb`, `display-p3`, `rec2020`,
+    //                       `a98-rgb`, and `prophoto-rgb`.
+    // If your display does not run with one of these gamuts,
+    // You should not change this.
+    "gamut_space": "srgb",
 
     //////////////////
     // Color Rules
@@ -151,7 +164,10 @@
     //                     rest, are still available under tools menu item on the popups.
     "color_classes": {
         "css-level-4": {
-            "filters": ["srgb", "hsl", "hwb", "lch", "lab", "display-p3", "rec2020", "prophoto-rgb", "a98-rgb", "xyz"],
+            "filters": [
+                "srgb", "hsl", "hwb", "lch", "lab", "display-p3", "rec2020",
+                "prophoto-rgb", "a98-rgb", "xyz", "xyz-d50"
+            ],
             "output": [
                 {"space": "srgb", "format": {"hex": true}},
                 {"space": "srgb", "format": {"comma": true}},
@@ -163,7 +179,8 @@
                 {"space": "rec2020", "format": {}},
                 {"space": "prophoto-rgb", "format": {}},
                 {"space": "a98-rgb", "format": {}},
-                {"space": "xyz", "format": {}}
+                {"space": "xyz", "format": {}},
+                {"space": "xyz-d50", "format": {}}
             ]
         },
         "css-level-3": {

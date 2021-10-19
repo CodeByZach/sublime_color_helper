@@ -20,15 +20,37 @@ If desired, previews can be configured to only show when a color is selected.
 
 ![Preview Select](images/preview_select.png)
 
-Colors that are out of the preview gamut space (sRGB) will be gamut mapped. If on ST4, hovering over the color previews
-will show a tooltip mentioning that the color is out of gamut. This is to remind the user that the color they see has
-been "fit" to the preview color space (sRGB).
+### Color Gamut and Previews
+
+Colors that are out of the preview gamut space (the default being sRGB) will be gamut mapped. If on ST4, hovering over
+the color previews will show a tooltip mentioning that the color is out of gamut. This is to remind the user that the
+color they see has been "fit" to the preview color space.
 
 ![Preview Select](images/gamut_mapped.png)
 
 If gamut mapping is disabled, the color will be displayed in such a way as to indicate that it is out of gamut.
 
 ![Preview Select](images/out_of_gamut.png)
+
+Sublime Text is not currently aware of gamut spaces in general and treats all colors as generic RGB. This means that
+color schemes, images, popups, phantoms all just take the RGB values at face value and hands them to the system. So,
+a color scheme defining HSL, RGB, and the like, which are all in the sRGB gamut, are passed to the system without any
+modifications based on the actual color profile. So on a macOS system with a Display P3 monitor, those assumed sRGB
+colors will be treated as Display P3 colors. In this case, reds and greens and blues will be more saturated and
+generally not correct.
+
+As a workaround ColorHelper allows you to change the preview gamut with the `gamut_space` option. If on a macOS system
+with a Display P3 display, we can simply set `gamut_space` to `display-p3` and we will get more accurate previews for
+both sRGB colors **and** Display P3 colors without needing to perform gamut mapping. But keep in mind, this setting
+should not be changed to a gamut space your monitor does not support or is not currently using or your previews will,
+likely be distorted.
+
+!!! new "New in 3.8.0"
+    `gamut_space` is a new experimental option added in 3.8.0.
+
+!!! warning "Gamut Space Option is Experimental"
+    The `gamut_space` option is experimental, and at some future time may no longer function properly if Sublime ever
+    addresses the color gamut issues.
 
 ## Color Info
 
@@ -45,8 +67,8 @@ in other [palettes](#palette-panel) than can be accessed later.
     see the [`use_os_color_picker`](settings/color_picker.md#use_os_color_picker) option.
 
 The internal color picker can be launched from the view's context menu, the command palette, or from the
-[Color Info Panel](#color_info).  When launched, it will use the current selected color. The internal color picker is
-contained inside a popup.  It has a color map box at the top where different colors can be selected. You can
+[Color Info Panel](#color_info).  By default, when launched, it will use the current selected color. The internal color
+picker is contained inside a popup.  It has a color map box at the top where different colors can be selected. You can
 toggle between altering the color in the sRGB, HSL, or HWB color space. You can also switch between the color map box
 and sliders.
 
@@ -65,6 +87,15 @@ panel will open:
 ![CSS color names](images/css_color_name_panel.png)
 
 When done, simply select the `select` link to insert the color back into the document.
+
+Out of the box `hsl`, `hsv`, and `srgb` are spaces that are enabled when doing color picking. `srgb` just uses `hsl`
+with sRGB channel sliders.
+
+If desired, a couple additional color spaces can be used: `okhsl` and `okhsv` (HSL and HSV variants based on Oklab) or
+HWB (HSL picker with with HWB sliders). This can all be configured in the settings.
+
+Additionally, if you desire a certain color space to always be used, you can turn off the "auto" mode and even specify
+what your preferred color space for the color picker should be.
 
 ## Edit Tool
 
@@ -103,6 +134,11 @@ color picker if launched from there.
 ## Color Contrast Tool
 
 ![Contrast Tool](images/contrast_tool.gif)
+
+!!! warning "Contrast and Colors Outside the sRGB gamut"
+    Composition of transparent colors are defaulted to the sRGB color space. The contrast ration targeting algorithm is
+    also specific to the sRGB color gamut. For this reason, all colors that are outside of the sRGB gamut are gamut
+    mapped to be within the sRGB color space.
 
 The contrast tool allows for viewing a color's contrast ratio or quickly adjusting a color to meet a minimum contrast
 ratio (if the ratio is achievable).
