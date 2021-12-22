@@ -33,6 +33,7 @@ manually and may even have legitimate reasons to do so.  When going this route, 
 1. Download the latest releases of the following dependencies and unpack or git clone in the `Packages` folder as shown below:
 
     - https://github.com/facelessuser/sublime-markdown-popups -> `mdpopups`
+    - https://github.com/packagecontrol/typing/issues -> `typing`
 
 2. Download and unpack or git clone the latest ColorHelper release and unpack as `ColorHelper`:
 
@@ -191,6 +192,7 @@ manually and may even have legitimate reasons to do so.  When going this route, 
                 add(path, first=first)
 
     add_dependency('mdpopups')
+    add_dependency('typing')
     ```
 
 4. Restart and enjoy.
