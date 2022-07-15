@@ -10,9 +10,16 @@ import platform
 import mdpopups
 import base64
 import importlib
+from .lib.coloraide import Color as Base
+from .lib.coloraide.color import SUPPORTED_SPACES
 from .lib.coloraide.css.parse import RE_COLOR_MATCH
-from .lib.coloraide import Color
 from .lib.coloraide import __version_info__ as coloraide_version
+import functools
+
+
+class Color(Base):
+    """Custom base."""
+
 
 PALETTE_CONFIG = 'ColorHelper.palettes'
 REQUIRED_COLOR_VERSION = (0, 1, 0, 'alpha', 19)
@@ -169,6 +176,19 @@ DEF_OUTPUT = [
 ]
 
 
+@functools.lru_cache()
+def get_base_color():
+    """Get base color."""
+
+    Color.deregister('space:*')
+    Color.register(SUPPORTED_SPACES)
+    settings = sublime.load_settings("color_helper.sublime-settings")
+    spaces = settings.get('add_to_default_spaces', [])
+    for space in spaces:
+        Color.register(import_color(space))
+    return Color
+
+
 def import_color(module_path):
     """Import color module."""
 
@@ -248,6 +268,7 @@ def get_scope(view, rules, skip_sel_check=False):
 def update_colors_2_0(colors):
     """Update colors for version 2.0."""
 
+    base = get_base_color()
     new_colors = []
     for c in colors:
         try:
@@ -267,7 +288,7 @@ def update_colors_2_0(colors):
                 elif space == '--xyz-d65':
                     space = 'xyz-d65'
 
-                new_colors.append(Color(space.lstrip('-'), channels, alpha).to_string(**COLOR_SERIALIZE))
+                new_colors.append(base(space.lstrip('-'), channels, alpha).to_string(**COLOR_SERIALIZE))
             else:
                 new_colors.append(c)
         except Exception:
@@ -278,6 +299,7 @@ def update_colors_2_0(colors):
 def update_colors_1_0(colors):
     """Update colors for version 1.0."""
 
+    base = get_base_color()
     new_colors = []
     for c in colors:
         try:
@@ -293,9 +315,9 @@ def update_colors_1_0(colors):
                     alpha = float(values[1])
                 else:
                     alpha = 1
-                new_colors.append(Color(space.lstrip('-'), channels, alpha).to_string(**COLOR_SERIALIZE))
+                new_colors.append(base(space.lstrip('-'), channels, alpha).to_string(**COLOR_SERIALIZE))
             else:
-                new_colors.append(Color(c).to_string(**COLOR_SERIALIZE))
+                new_colors.append(base(c).to_string(**COLOR_SERIALIZE))
         except Exception:
             pass
     return new_colors
