@@ -1,19 +1,35 @@
 # ColorHelper
 
+## 6.0.3
+
+- **FIX**: Fix registration of color spaces in custom color objects.
+
+## 6.0.2
+
+- **FIX**: Fix issue where default, dynamic color class wasn't always  
+  properly.
+
+## 6.0.1
+
+- **FIX**: Fix absolute import reference that should have been relative.
+
 ## 6.0.0
 
 > **WARNING**: We finally made it to a stable `coloraide` 1.x.x release,  
 > but some more unforeseen changes had to be made. This has been a long  
 > road to get the underlying color library to a stable state.
 >
-> - User created custom plugins may need refactoring again.
-> - If you tweaked `add_to_default_spaces`, please compare against the  
->   default list as some plugins were renamed. Color space plugins that  
->   do not properly load should show log entries in the console.
+> - User created custom plugins may need refactoring again, but most
+>   should be unaffected.
+> - If you tweaked the new`add_to_default_spaces`, please compare against
+>   the default list as some plugins were renamed and user settings may
+>   need to get updated. Color space plugins that do not properly load
+>   should show log entries in the console.
 
 - **NEW**: Upgraded to the stable `coloraide` 1.1. This should hopefully  
   eliminate API churn as it is now a stable release.
 - **NEW**: Log when default color space loading fails.
+- **FIX**: Fix color picker slider issue.
 
 ## 5.0.1
 
