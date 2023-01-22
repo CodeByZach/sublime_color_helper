@@ -1,4 +1,5 @@
 """Color harmonies."""
+from abc import ABCMeta, abstractmethod
 from . import algebra as alg
 from .spaces import Cylindrical
 from typing import Optional, Dict, List, cast, TYPE_CHECKING
@@ -7,9 +8,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from .color import Color
 
 
-class Harmony:
+class Harmony(metaclass=ABCMeta):
     """Color harmony."""
 
+    @abstractmethod
     def harmonize(self, color: 'Color', space: Optional[str]) -> List['Color']:
         """Get color harmonies."""
 
@@ -62,8 +64,8 @@ class Monochromatic(Harmony):
 
         # Create black and white so we can generate tints and shades
         # Ensure hue and alpha is masked so we don't interpolate them.
-        w = color.new('color(srgb 1 1 1 / none)').convert(space, in_place=True).mask(['hue', 'alpha'], in_place=True)
-        b = color.new('color(srgb 0 0 0 / none)').convert(space, in_place=True).mask(['hue', 'alpha'], in_place=True)
+        w = color.new('srgb', [1, 1, 1], alg.NaN).convert(space, in_place=True).mask(['hue', 'alpha'], in_place=True)
+        b = color.new('srgb', [0, 0, 0], alg.NaN).convert(space, in_place=True).mask(['hue', 'alpha'], in_place=True)
 
         # Calculate how many tints and shades we need to generate
         db = b.delta_e(color0, method=self.DELTA_E)
@@ -128,7 +130,7 @@ class Geometric(Harmony):
 
         degree = current = 360 / self.COUNT
         colors = [color]
-        for r in range(self.COUNT - 1):
+        for _ in range(self.COUNT - 1):
             colors.append(
                 color0.clone().set(
                     name,

@@ -51,6 +51,19 @@ def hint(mid: float) -> Callable[..., float]:
     return functools.partial(midpoint, h=mid)
 
 
+def normalize_domain(d: List[float]) -> List[float]:
+    """Normalize domain between 0 and 1."""
+
+    total = d[-1] - d[0]
+    regions = len(d) - 1
+    values = [0.0]
+    for index in range(regions):
+        a, b = d[index:index + 2]
+        l = b - a
+        values.append(values[-1] + (l / total if total else 0))
+    return values
+
+
 class Interpolator(metaclass=ABCMeta):
     """Interpolator."""
 
@@ -66,6 +79,7 @@ class Interpolator(metaclass=ABCMeta):
         progress: Optional[Union[Callable[..., float], Mapping[str, Callable[..., float]]]],
         premultiplied: bool,
         extrapolate: bool = False,
+        domain: Optional[List[float]] = None,
         **kwargs: Any
     ):
         """Initialize."""
@@ -89,6 +103,24 @@ class Interpolator(metaclass=ABCMeta):
         else:
             self.hue_index = -1
         self.premultiplied = premultiplied
+
+        # Ensure domain ascends.
+        # If we have a domain of length 1, we will duplicate it.
+        if domain is not None and domain:
+            length = len(domain)
+
+            # Ensure values are not descending
+            d = [domain[0]]
+            for index in range(length - 1):
+                b = domain[index + 1]
+                d.append(d[-1] if b <= d[-1] else b)
+
+            # We need at least two values, so duplicate the first.
+            if len(d) == 1:
+                d.append(d[0])
+            domain = d
+
+        self.domain = [] if domain is None else domain  # type: List[float]
 
         self.setup()
 
@@ -204,7 +236,7 @@ class Interpolator(metaclass=ABCMeta):
 
             coords[i] = value / alpha
 
-    def begin(self, point: float, s: float, last: float, index: int) -> 'Color':
+    def begin(self, point: float, first: float, last: float, index: int) -> 'Color':
         """
         Begin interpolation.
 
@@ -215,13 +247,13 @@ class Interpolator(metaclass=ABCMeta):
         """
 
         # Adjust stop to be relative to the given stops
-        r = s - last
-        if point < last:
-            adjusted_time = point - last if self.extrapolate else 0
-        elif point > s:
-            adjusted_time = 1 + point - s if self.extrapolate else 1
+        r = last - first
+        if point < first:
+            adjusted_time = point - first if self.extrapolate else 0
+        elif point > last:
+            adjusted_time = 1 + point - last if self.extrapolate else 1
         else:
-            adjusted_time = (point - last) / r if r else 1
+            adjusted_time = (point - first) / r if r else 1
 
         # Do we have an easing function between these stops?
         self.current_easing = self.easings[index - 1]
@@ -256,24 +288,54 @@ class Interpolator(metaclass=ABCMeta):
 
         return progress(t) if progress is not None else t
 
+    def scale(self, point: float) -> float:
+        """
+        Scale a point from a custom domain into a domain of 0 to 1.
+
+        This allows a user to have a custom domain, but for us to adapt back to 0 and 1
+        so that our logic can remain consistent.
+        """
+
+        if point < self.domain[0]:
+            point = (point - self.domain[0]) / (self.domain[-1] - self.domain[0]) if self.extrapolate else 0.0
+        elif point > self.domain[-1]:
+            point = 1.0 + (point - self.domain[-1]) / (self.domain[-1] - self.domain[0]) if self.extrapolate else 1.0
+        else:
+            regions = len(self.domain) - 1
+            size = (1 / regions)
+            index = 0
+            adjusted = 0.0
+            for index in range(regions):
+                a, b = self.domain[index:index + 2]
+                if point >= a and point <= b:
+                    l = b - a
+                    adjusted = ((point - a) / l) if l else 0.0
+                    break
+
+            point = size * index + (adjusted * size)
+        return point
+
     def __call__(self, point: float) -> 'Color':
         """Find which leg of the interpolation the request is between."""
 
+        if self.domain:
+            point = self.scale(point)
+
         # See if point extends past either the first or last stop
         if point < self.start:
-            last, s = self.start, self.stops[1]
-            return self.begin(point, s, last, 1)
+            first, last = self.start, self.stops[1]
+            return self.begin(point, first, last, 1)
         elif point > self.end:
-            last, s = self.stops[self.length - 2], self.end
-            return self.begin(point, s, last, self.length - 1)
+            first, last = self.stops[self.length - 2], self.end
+            return self.begin(point, first, last, self.length - 1)
         else:
             # Iterate stops to find where our point falls between
-            last = self.start
+            first = self.start
             for i in range(1, self.length):
-                s = self.stops[i]
-                if point <= s:
-                    return self.begin(point, s, last, i)
-                last = s
+                last = self.stops[i]
+                if point <= last:
+                    return self.begin(point, first, last, i)
+                first = last
 
         # We shouldn't ever hit this, but provided for typing.
         # If we do hit this, it would be a bug.
@@ -297,6 +359,8 @@ class Interpolate(Plugin, metaclass=ABCMeta):
         out_space: str,
         progress: Optional[Union[Mapping[str, Callable[..., float]], Callable[..., float]]],
         premultiplied: bool,
+        extrapolate: bool = False,
+        domain: Optional[List[float]] = None,
         **kwargs: Any
     ) -> Interpolator:
         """Get the interpolator object."""
@@ -378,11 +442,11 @@ def process_mapping(
     return {aliases.get(k, k): v for k, v in progress.items()}
 
 
-def normalize_color(color: 'Color', space: str) -> None:
+def normalize_color(color: 'Color') -> None:
     """Normalize color."""
 
     # Adjust to color to space and ensure it fits
-    if not color.CS_MAP[space].EXTENDED_RANGE:
+    if not color._space.EXTENDED_RANGE:
         if not color.in_gamut():
             color.fit()
 
@@ -481,13 +545,14 @@ def interpolator(
     progress: Optional[Union[Mapping[str, Callable[..., float]], Callable[..., float]]],
     hue: str,
     premultiplied: bool,
+    extrapolate: bool,
+    domain: Optional[List[float]] = None,
     **kwargs: Any
 ) -> Interpolator:
     """Get desired blend mode."""
 
-    try:
-        plugin = create.INTERPOLATE_MAP[interpolator]
-    except KeyError:
+    plugin = create.INTERPOLATE_MAP.get(interpolator)
+    if not plugin:
         raise ValueError("'{}' is not a recognized interpolator".format(interpolator))
 
     # Construct piecewise interpolation object
@@ -511,7 +576,7 @@ def interpolator(
     current.convert(space, in_place=True)
     offset = 0.0
     hue_index = cast(Cylindrical, current._space).hue_index() if isinstance(current._space, Cylindrical) else -1
-    normalize_color(current, space)
+    normalize_color(current)
     norm = current[:]
     fallback = None
     if hue_index >= 0:
@@ -542,7 +607,7 @@ def interpolator(
 
         # Adjust to color to space and ensure it fits
         color = color.convert(space)
-        normalize_color(color, space)
+        normalize_color(color)
         norm = color[:]
         if hue_index >= 0:
             h = norm[hue_index]
@@ -576,5 +641,7 @@ def interpolator(
         out_space,
         process_mapping(progress, current._space.CHANNEL_ALIASES),
         premultiplied,
+        extrapolate,
+        domain,
         **kwargs
     )
