@@ -4,10 +4,9 @@ from ...cat import WHITES
 from ...channels import Channel, FLG_ANGLE, FLG_OPT_PERCENT
 from ... import util
 import math
-from ... import algebra as alg
 from ...types import Vector
 
-ACHROMATIC_THRESHOLD = 0.0000000002
+ACHROMATIC_THRESHOLD = 1e-4
 
 
 def lab_to_lch(lab: Vector) -> Vector:
@@ -18,11 +17,6 @@ def lab_to_lch(lab: Vector) -> Vector:
     c = math.sqrt(a ** 2 + b ** 2)
     h = math.degrees(math.atan2(b, a))
 
-    # Achromatic colors will often get extremely close, but not quite hit zero.
-    # Essentially, we want to discard noise through rounding and such.
-    if c < ACHROMATIC_THRESHOLD:
-        h = alg.NaN
-
     return [l, c, util.constrain_hue(h)]
 
 
@@ -30,8 +24,6 @@ def lch_to_lab(lch: Vector) -> Vector:
     """LCh to Lab."""
 
     l, c, h = lch
-    if alg.is_nan(h):  # pragma: no cover
-        return [l, 0.0, 0.0]
 
     return [
         l,
@@ -58,13 +50,10 @@ class LCh(LChish, Space):
     }
     WHITE = WHITES['2deg']['D50']
 
-    def normalize(self, coords: Vector) -> Vector:
-        """On color update."""
+    def is_achromatic(self, coords: Vector) -> bool:
+        """Check if color is achromatic."""
 
-        coords = alg.no_nans(coords)
-        if coords[1] < ACHROMATIC_THRESHOLD:
-            coords[2] = alg.NaN
-        return coords
+        return coords[1] < ACHROMATIC_THRESHOLD
 
     def to_base(self, coords: Vector) -> Vector:
         """To Lab from LCh."""

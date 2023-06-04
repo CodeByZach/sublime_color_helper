@@ -1,17 +1,17 @@
 """String serialization."""
+import math
 import re
 from .. import util
 from .. import algebra as alg
-from . import parse
 from .color_names import to_name
-from ..channels import FLG_PERCENT, FLG_OPT_PERCENT
+from ..channels import FLG_PERCENT, FLG_OPT_PERCENT, FLG_ANGLE
 from ..types import Vector
-from typing import Optional, Union, Match, cast, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..color import Color
 
-RE_COMPRESS = re.compile(r'(?i)^#({hex})\1({hex})\2({hex})\3(?:({hex})\4)?$'.format(**parse.COLOR_PARTS))
+RE_COMPRESS = re.compile(r'(?i)^#([a-f0-9])\1([a-f0-9])\2([a-f0-9])\3(?:([a-f0-9])\4)?$')
 
 COMMA = ', '
 SLASH = ' / '
@@ -19,15 +19,17 @@ SPACE = ' '
 EMPTY = ''
 
 
-def named_color(obj: 'Color', alpha: Optional[bool], fit: Union[str, bool]) -> Optional[str]:
+def named_color(
+    obj: 'Color',
+    alpha: Optional[bool],
+    fit: Union[str, bool]
+) -> Optional[str]:
     """Get the CSS color name."""
 
-    a = get_alpha(obj, alpha, False)
+    a = get_alpha(obj, alpha, False, False)
     if a is None:
         a = 1
-    method = None if not isinstance(fit, str) else fit
-    coords = alg.no_nans(obj.clone().fit(method=method)[:-1])
-    return to_name(coords + [a])
+    return to_name(get_coords(obj, fit, False, False) + [a])
 
 
 def named_color_function(
@@ -44,7 +46,7 @@ def named_color_function(
     """Translate to CSS function form `name(...)`."""
 
     # Create the function `name` or `namea` if old legacy form.
-    a = get_alpha(obj, alpha, none)
+    a = get_alpha(obj, alpha, none, legacy)
     string = ['{}{}('.format(func, 'a' if legacy and a is not None else EMPTY)]
 
     # Iterate the coordinates formatting them for percent, not percent, and even scaling them (sRGB).
@@ -53,7 +55,8 @@ def named_color_function(
     for idx, value in enumerate(coords):
         channel = channels[idx]
         use_percent = channel.flags & FLG_PERCENT or (percent and channel.flags & FLG_OPT_PERCENT)
-        if not use_percent:
+        is_angle = channel.flags & FLG_ANGLE
+        if not use_percent and not is_angle:
             value *= scale
         if idx != 0:
             string.append(COMMA if legacy else SPACE)
@@ -85,7 +88,7 @@ def color_function(
 
     # Export in the `color(space ...)` format
     coords = get_coords(obj, fit, none, False)
-    a = get_alpha(obj, alpha, none)
+    a = get_alpha(obj, alpha, none, False)
     return (
         'color({} {}{})'.format(
             obj._space._serialize()[0],
@@ -95,19 +98,28 @@ def color_function(
     )
 
 
-def get_coords(obj: 'Color', fit: Union[str, bool], none: bool, legacy: bool) -> Vector:
+def get_coords(
+    obj: 'Color',
+    fit: Union[str, bool],
+    none: bool,
+    legacy: bool
+) -> Vector:
     """Get the coordinates."""
 
-    method = None if not isinstance(fit, str) else fit
-    coords = obj.fit(method=method)[:-1] if fit else obj[:-1]
-    return alg.no_nans(coords) if legacy or not none else coords
+    color = (obj.fit(method=None if not isinstance(fit, str) else fit) if fit else obj)
+    return color.coords(nans=False if legacy or not none else True)
 
 
-def get_alpha(obj: 'Color', alpha: Optional[bool], none: bool) -> Optional[float]:
+def get_alpha(
+    obj: 'Color',
+    alpha: Optional[bool],
+    none: bool,
+    legacy: bool
+) -> Optional[float]:
     """Get the alpha if required."""
 
-    a = alg.no_nan(obj[-1]) if not none else obj[-1]
-    alpha = alpha is not False and (alpha is True or a < 1.0 or alg.is_nan(a))
+    a = obj.alpha(nans=False if not none or legacy else True)
+    alpha = alpha is not False and (alpha is True or a < 1.0 or math.isnan(a))
     return None if not alpha else a
 
 
@@ -120,9 +132,8 @@ def hexadecimal(
 ) -> str:
     """Get the hex `RGB` value."""
 
-    method = None if not isinstance(fit, str) else fit
-    coords = [c for c in alg.no_nans(obj.fit(method=method)[:-1])]
-    a = get_alpha(obj, alpha, False)
+    coords = get_coords(obj, fit, False, False)
+    a = get_alpha(obj, alpha, False, False)
 
     if a is not None:
         value = "#{:02x}{:02x}{:02x}{:02x}".format(
@@ -142,8 +153,8 @@ def hexadecimal(
         value = value.upper()
 
     if compress:
-        m = cast(Match[str], RE_COMPRESS.match(value))
-        return m.expand(r"#\1\2\3\4") if len(value) == 9 else m.expand(r"#\1\2\3") if m else value
+        m = RE_COMPRESS.match(value)
+        return (m.expand(r"#\1\2\3\4") if len(value) == 9 else m.expand(r"#\1\2\3")) if m is not None else value
     else:
         return value
 
@@ -162,7 +173,7 @@ def serialize_css(
     compress: bool = False,
     name: bool = False,
     legacy: bool = False,
-    scale: float = 1.0,
+    scale: float = 1.0
 ) -> str:
     """Convert color to CSS."""
 

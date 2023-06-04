@@ -15,6 +15,7 @@ DEF_INTERPOLATE = "oklab"
 DEF_FIT = "lch-chroma"
 DEF_HARMONY = "oklch"
 DEF_DELTA_E = "76"
+DEF_AVERAGE = 'srgb-linear'
 
 # Maximum luminance in PQ is 10,000 cd/m^2
 # Relative XYZ has Y=1 for media white
@@ -95,7 +96,7 @@ def xyz_to_xyY(xyz: VectorLike, white: VectorLike) -> Vector:
     return [white[0], white[1], y] if d == 0 else [x / d, y / d, y]
 
 
-def pq_st2084_inverse_eotf(
+def pq_st2084_oetf(
     values: VectorLike,
     c1: float = C1,
     c2: float = C2,
@@ -103,7 +104,7 @@ def pq_st2084_inverse_eotf(
     m1: float = M1,
     m2: float = M2
 ) -> Vector:
-    """Perceptual quantizer (SMPTE ST 2084) - inverse EOTF."""
+    """Perceptual quantizer (SMPTE ST 2084) - OETF."""
 
     adjusted = []
     for c in values:
@@ -147,7 +148,7 @@ def absxyzd65_to_xyz_d65(absxyzd65: VectorLike, yw: float = YW) -> Vector:
 
 
 def constrain_hue(hue: float) -> float:
-    """Constrain hue to 0 - 360."""
+    """Constrain hue to [0, 360)."""
 
     return hue % 360 if not alg.is_nan(hue) else hue
 

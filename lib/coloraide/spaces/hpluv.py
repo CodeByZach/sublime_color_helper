@@ -24,17 +24,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from ..spaces import Space, Cylindrical
+from ..spaces import Space, HSLish
 from ..cat import WHITES
 from ..channels import Channel, FLG_ANGLE
-from .lch import ACHROMATIC_THRESHOLD
 from .lab import EPSILON, KAPPA
 from .srgb_linear import XYZ_TO_RGB
 import math
 from .. import util
-from .. import algebra as alg
 from ..types import Vector
-from typing import List, Tuple
+from typing import Tuple, List
 
 
 def distance_line_from_origin(line: Tuple[float, float]) -> float:
@@ -80,12 +78,10 @@ def hpluv_to_lch(hpluv: Vector) -> Vector:
     if l > 100 - 1e-7:
         l = 100
     elif l < 1e-08:
-        l = 0
-    elif not alg.is_nan(h):
+        l = 0.0
+    else:
         _hx_max = max_safe_chroma_for_l(l)
         c = _hx_max / 100 * s
-        if c < ACHROMATIC_THRESHOLD:
-            h = alg.NaN
     return [l, c, util.constrain_hue(h)]
 
 
@@ -97,16 +93,14 @@ def lch_to_hpluv(lch: Vector) -> Vector:
     if l > 100 - 1e-7:
         l = 100
     elif l < 1e-08:
-        l = 0
-    elif not alg.is_nan(h):
+        l = 0.0
+    else:
         _hx_max = max_safe_chroma_for_l(l)
         s = c / _hx_max * 100
-    if s < 1e-08:
-        h = alg.NaN
     return [util.constrain_hue(h), s, l]
 
 
-class HPLuv(Cylindrical, Space):
+class HPLuv(HSLish, Space):
     """HPLuv class."""
 
     BASE = 'lchuv'
@@ -124,13 +118,10 @@ class HPLuv(Cylindrical, Space):
     }
     WHITE = WHITES['2deg']['D65']
 
-    def normalize(self, coords: Vector) -> Vector:
-        """On color update."""
+    def is_achromatic(self, coords: Vector) -> bool:
+        """Check if color is achromatic."""
 
-        coords = alg.no_nans(coords)
-        if coords[1] == 0 or coords[2] > (100 - 1e-7) or coords[2] < 1e-08:
-            coords[0] = alg.NaN
-        return coords
+        return abs(coords[1]) < 1e-4 or coords[2] > (100 - 1e-7) or coords[2] < 1e-08
 
     def to_base(self, coords: Vector) -> Vector:
         """To LChuv from HPLuv."""

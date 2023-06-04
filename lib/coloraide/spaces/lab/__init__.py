@@ -6,6 +6,7 @@ from ... import util
 from ... import algebra as alg
 from ...types import VectorLike, Vector
 
+ACHROMATIC_THRESHOLD = 1e-4
 EPSILON = 216 / 24389  # `6^3 / 29^3`
 EPSILON3 = 6 / 29  # Cube root of EPSILON
 KAPPA = 24389 / 27
@@ -37,7 +38,7 @@ def lab_to_xyz(lab: Vector, white: VectorLike) -> Vector:
     ]
 
     # Compute XYZ by scaling `xyz` by reference `white`
-    return alg.multiply(xyz, util.xy_to_xyz(white), dims=alg.D1)
+    return alg.multiply(xyz, white, dims=alg.D1)
 
 
 def xyz_to_lab(xyz: Vector, white: VectorLike) -> Vector:
@@ -51,7 +52,7 @@ def xyz_to_lab(xyz: Vector, white: VectorLike) -> Vector:
     """
 
     # compute `xyz`, which is XYZ scaled relative to reference white
-    xyz = alg.divide(xyz, util.xy_to_xyz(white), dims=alg.D1)
+    xyz = alg.divide(xyz, white, dims=alg.D1)
     # Compute `fx`, `fy`, and `fz`
     fx, fy, fz = [alg.cbrt(i) if i > EPSILON else (KAPPA * i + 16) / 116 for i in xyz]
 
@@ -78,12 +79,17 @@ class Lab(Labish, Space):
     }
     WHITE = WHITES['2deg']['D50']
 
+    def is_achromatic(self, coords: Vector) -> bool:
+        """Check if color is achromatic."""
+
+        return alg.rect_to_polar(coords[1], coords[2])[0] < ACHROMATIC_THRESHOLD
+
     def to_base(self, coords: Vector) -> Vector:
         """To XYZ D50 from Lab."""
 
-        return lab_to_xyz(coords, self.white())
+        return lab_to_xyz(coords, util.xy_to_xyz(self.white()))
 
     def from_base(self, coords: Vector) -> Vector:
         """From XYZ D50 to Lab."""
 
-        return xyz_to_lab(coords, self.white())
+        return xyz_to_lab(coords, util.xy_to_xyz(self.white()))
