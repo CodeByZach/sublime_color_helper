@@ -15,6 +15,22 @@ Previews can be positioned to the left or right of a color. Set this value to "l
     "inline_preview_position": "left",
 ```
 
+## 
+
+Color previews are processed in a sliding window. Without any padding it exactly matches the visible region. This allows
+you to extend the window and process content just out of visible range. It should be noted though that large padding
+could cause typing or scrolling lag.
+
+```js
+    // Define padding around sliding preview window
+    // Extend the range previews processed by ColorHelper.
+    // Value should be positive integers and represent the rows and columns
+    // to extend the range by. Padding is applied on both sides. So padding
+    // by 20 rows pads by 20 on the top and 20 on the bottom. Large padding
+    // could cause lag with typing or scrolling.
+    "preview_window_padding": [20, 20],
+````
+
 ## `preview_on_select`
 
 Enables/disables previews only showing when they are selected.
@@ -39,9 +55,11 @@ Controls whether previews will attempt to gamut map a color that is out of the p
 
 ## `gamut_space`
 
-!!! warning "Experimental Feature"
+/// warning | Experimental Feature
+///
 
-!!! new "New in 3.8.0"
+/// new | New in 3.8.0
+///
 
 Select the gamut space used for color previews. You should only pick a space that matches your system. If you happen
 to have a display that does not align with one of the spaces below, you may just have to pick whatever is closest.
@@ -62,7 +80,8 @@ for sRGB, then you should not touch the below setting.
 
 ## `gamut_map`
 
-!!! new "New in 6.2.0"
+/// new | New in 6.2.0
+///
 
 Select the gamut mapping approach used when displaying previews or when cohering colors into a specific gamut anywhere
 else in the code.
