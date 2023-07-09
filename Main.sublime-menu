@@ -6,29 +6,17 @@
         "children":
         [
             {
-                "id": "packages",
                 "caption": "Packages",
+                "id": "packages",
                 "children":
                 [
                     {
                         "caption": "Color Helper",
                         "children":
                         [
-                            {
-                                "caption": "Color Info",
-                                "command": "color_helper",
-                                "args": { "mode": "info" }
-                            },
-                            {
-                                "caption": "Color Palettes",
-                                "command": "color_helper",
-                                "args": { "mode": "palette" }
-                            },
-                            {
-                                "caption": "Color Picker",
-                                "command": "color_helper",
-                                "args": { "mode": "color_picker" }
-                            }
+                            { "caption": "Color Info",     "command": "color_helper", "args": { "mode": "info" } },
+                            { "caption": "Color Palettes", "command": "color_helper", "args": { "mode": "palette" } },
+                            { "caption": "Color Picker",   "command": "color_helper", "args": { "mode": "color_picker" } }
                         ]
                     }
                 ]
@@ -36,11 +24,14 @@
         ]
     },
     {
+        "caption": "Preferences",
+        "mnemonic": "n",
         "id": "preferences",
         "children":
         [
             {
                 "caption": "Package Settings",
+                "mnemonic": "P",
                 "id": "package-settings",
                 "children":
                 [
@@ -59,6 +50,16 @@
                             },
                             { "caption": "-" },
                             {
+                                "caption": "Key Bindings",
+                                "command": "z_edit_settings",
+                                "args":
+                                {
+                                    "base_file": "${packages}/ColorHelper/Default (${platform}).sublime-keymap",
+                                    "default": "[\n\t$0\n]\n"
+                                }
+                            },
+                            { "caption": "-" },
+                            {
                                 "caption": "Menus",
                                 "children":
                                 [
@@ -67,7 +68,6 @@
                                         "command": "z_edit_settings",
                                         "args":
                                         {
-                                            "is_parent_setting": "1",
                                             "base_file": "${packages}/ColorHelper/Context.sublime-menu",
                                             "default": "[\n\t$0\n]\n"
                                         }
@@ -77,8 +77,43 @@
                                         "command": "z_edit_settings",
                                         "args":
                                         {
-                                            "is_parent_setting": "1",
                                             "base_file": "${packages}/ColorHelper/Main.sublime-menu",
+                                            "default": "[\n\t$0\n]\n"
+                                        }
+                                    },
+                                    {
+                                        "caption": "Side Bar Menu",
+                                        "command": "z_edit_settings",
+                                        "args":
+                                        {
+                                            "base_file": "${packages}/ColorHelper/Side Bar.sublime-menu",
+                                            "default": "[\n\t$0\n]\n"
+                                        }
+                                    },
+                                    {
+                                        "caption": "Side Bar Open Files Menu",
+                                        "command": "z_edit_settings",
+                                        "args":
+                                        {
+                                            "base_file": "${packages}/ColorHelper/Tab Sidebar Context.sublime-menu",
+                                            "default": "[\n\t$0\n]\n"
+                                        }
+                                    },
+                                    {
+                                        "caption": "Tab Menu",
+                                        "command": "z_edit_settings",
+                                        "args":
+                                        {
+                                            "base_file": "${packages}/ColorHelper/Tab Context.sublime-menu",
+                                            "default": "[\n\t$0\n]\n"
+                                        }
+                                    },
+                                    {
+                                        "caption": "Widget Menu",
+                                        "command": "z_edit_settings",
+                                        "args":
+                                        {
+                                            "base_file": "${packages}/ColorHelper/Widget Context.sublime-menu",
                                             "default": "[\n\t$0\n]\n"
                                         }
                                     }
@@ -89,7 +124,6 @@
                                 "command": "z_edit_settings",
                                 "args":
                                 {
-                                    "is_parent_setting": "1",
                                     "base_file": "${packages}/ColorHelper/Default.sublime-commands",
                                     "default": "[\n\t$0\n]\n"
                                 }

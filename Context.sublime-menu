@@ -1,47 +1,23 @@
 /*
  * You can use the following snippet to enable the Context Menu.
  *
- *  { "caption": "-" },
+ *  { "caption": "-", "id": "color_helper" },
  *  {
  *      "caption": "Color Helper",
  *      "children":
  *      [
- *          {
- *              "caption": "Color Info",
- *              "command": "color_helper",
- *              "args": { "mode": "info" }
- *          },
- *          {
- *              "caption": "Color Palettes",
- *              "command": "color_helper",
- *              "args": {"mode": "palette"}
- *          },
- *          {
- *              "caption": "Color Picker",
- *              "command": "color_helper",
- *              "args": { "mode": "color_picker" }
- *          },
- *          {
- *              "caption": "Color Helper: Edit and Mix",
- *              "command": "color_helper_edit"
- *          },
- *          {
- *              "caption": "Color Helper: Contrast",
- *              "command": "color_helper_contrast_ratio"
- *          },
- *          {
- *              "caption": "Color Helper: ST ColorMod",
- *              "command": "color_helper_sublime_color_mod"
- *          },
- *          {
- *              "caption": "Color Helper: Difference",
- *              "command": "color_helper_difference"
- *          },
- *          {
- *              "caption": "Color Helper: Blend Modes",
- *              "command": "color_helper_blend_mode"
- *          }
+ *          { "caption": "Color Info", "command": "color_helper", "args": { "mode": "info" } },
+ *          { "caption": "Color Palettes", "command": "color_helper", "args": { "mode": "palette" } },
+ *          { "caption": "Color Picker", "command": "color_helper", "args": { "mode": "color_picker" } },
+ *          { "caption": "Color Helper: Edit and Mix", "command": "color_helper_edit" },
+ *          { "caption": "Color Helper: Contrast", "command": "color_helper_contrast_ratio" },
+ *          { "caption": "Color Helper: ST ColorMod", "command": "color_helper_sublime_color_mod" },
+ *          { "caption": "Color Helper: Difference", "command": "color_helper_difference" },
+ *          { "caption": "Color Helper: Blend Modes", "command": "color_helper_blend_mode" }
  *      ]
  *  },
- *  { "caption": "-"}
+ *  { "caption": "-" }
  */
+[
+
+]
