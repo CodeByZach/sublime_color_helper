@@ -4,6 +4,7 @@ RYB color space.
 Gosset and Chen
 http://bahamas10.github.io/ryb/assets/ryb.pdf
 """
+from __future__ import annotations
 import math
 from ..spaces import Regular, Space
 from .. import algebra as alg
