@@ -884,7 +884,6 @@ def plugin_loaded():
     """Setup plugin."""
 
     global ch_settings
-    global ch_last_updated
 
     # Setup settings
     ch_settings = sublime.load_settings('ColorHelper.sublime-settings')
