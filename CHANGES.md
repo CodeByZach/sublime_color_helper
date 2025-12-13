@@ -1,5 +1,28 @@
 # ColorHelper
 
+## 6.5.1
+
+-   **NEW**: Fix issues related to ColorAide update.
+
+## 6.5.0
+
+-   **NEW**: Upgrade ColorAide to 6.0.0.
+-   **NEW**: Allow setting gamut map parameters in settings file.
+-   **NEW**: Require Python 3.13 for Sublim Text 4201+.
+
+## 6.4.5
+
+-   **FIX**: Fix SCSS support.
+
+## 6.4.4
+
+-   **FIX**: Fix regression in Sublime color parsing.
+
+## 6.4.3
+
+-   **FIX**: Fix issue where a newly opened file will not show previews  
+    until the file is scrolled or resized.
+
 ## 6.4.2
 
 -   **FIX**: Fix regression in Sublime ColorMod parsing.
