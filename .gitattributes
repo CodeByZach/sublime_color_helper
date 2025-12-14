@@ -5,7 +5,6 @@
 /.github/          export-ignore
 /.prospector.yml   export-ignore
 /.pyspelling.yml   export-ignore
-/.python-version   export-ignore
 /docs/             export-ignore
 /mkdocs.yml        export-ignore
 /run_tests.sh      export-ignore
