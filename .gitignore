@@ -6,6 +6,3 @@
 *.pyc
 .cache/
 .tox/
-
-# Site Files
-/Pipfile.lock
