@@ -86,7 +86,7 @@ class WinPick(_ColorPicker):
         """Get windows custom colors."""
 
         CustomColors = ctypes.c_uint32 * 16  # noqa: N806
-        colors = sublime.load_settings('color_helper.palettes').get("win_picker_custom", [])
+        colors = sublime.load_settings('ColorHelper.palettes').get("win_picker_custom", [])
         length = len(colors)
         if length > 16:
             colors = colors[0:16]
@@ -112,9 +112,9 @@ class WinPick(_ColorPicker):
                     color=True, fit=False, precision=-1
                 )
             )
-        s = sublime.load_settings('color_helper.palettes')
+        s = sublime.load_settings('ColorHelper.palettes')
         s.set("win_picker_custom", pcolors)
-        sublime.save_settings('color_helper.palettes')
+        sublime.save_settings('ColorHelper.palettes')
 
     def pick(self):
         """Pick the color."""

@@ -28,7 +28,7 @@ BORDER_SIZE = 1
 def get_color_picker_modes():
     """Get color picker modes."""
 
-    settings = sublime.load_settings("color_helper.sublime-settings")
+    settings = sublime.load_settings("ColorHelper.sublime-settings")
 
     # Create a list of valid modes
     modes = []

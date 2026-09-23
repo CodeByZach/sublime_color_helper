@@ -214,7 +214,7 @@ def get_base_color():
 
     Color.deregister('space:*')
     Color.register(SUPPORTED_SPACES)
-    settings = sublime.load_settings("color_helper.sublime-settings")
+    settings = sublime.load_settings("ColorHelper.sublime-settings")
     spaces = settings.get('add_to_default_spaces', [])
     for space in spaces:
         try:
