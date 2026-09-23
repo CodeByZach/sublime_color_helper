@@ -10,7 +10,9 @@ A restart of Sublime Text is **strongly** encouraged.
 Please report any issues as we _might_ have missed some required updates  
 related to the upgrade to stable `coloraide`.
 
-## 6.5.0
+## 6.7.0
 
--   **NEW**: Upgrade ColorAide to 6.0.0.
--   **NEW**: Require Python 3.13 for Sublim Text 4201+.
+-   **NEW**: Rework HTML, CSS, SCSS, SASS handling. As syntax packages  
+    have evolved, rework rules to better target colors, combining  
+    handling under one rule `HTML/CSS`.
+-   **NEW**: Move handling for old, CSS3 syntax to its own rule.
