@@ -1,7 +1,7 @@
 """LCh class."""
 from __future__ import annotations
 from ... import algebra as alg
-from ...spaces import Space, LChish
+from .. import Space, LChish
 from ...cat import WHITES
 from ...channels import Channel, FLG_ANGLE
 from ... import util
@@ -52,7 +52,7 @@ class LCh(LChish, Space):
 
         super().__init__(**kwargs)
         order = alg.order(round(self.channels[self.indexes()[0]].high, 5))
-        self.achromatic_threshold = (1 * 10.0 ** order) / 1_000_000
+        self.achromatic_threshold = max((1 * 10.0 ** order) / 1_000_000, 1e-12)
 
     def normalize(self, coords: Vector) -> Vector:
         """Normalize coordinates."""

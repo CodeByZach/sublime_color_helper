@@ -1,0 +1,200 @@
+"""
+Handle spectral related things.
+
+- Calculations colors from/to wavelengths.
+"""
+from __future__ import annotations
+import math
+from functools import lru_cache
+from . import algebra as alg
+from . import util
+from .types import Vector, VectorLike
+from . import cat
+from . import cmfs
+
+WHITE = cat.WHITES['2deg']['E']
+
+
+@lru_cache(maxsize=1)
+def get_locus_angles(cmfs: cmfs.CMFs, white: VectorLike) -> tuple[Vector, float]:
+    """Get the angles of the points and return list of angles and the offset we adjust the angles."""
+
+    start = xy_to_angle(util.xyz_to_xyY(cmfs[cmfs.start])[:-1], white)
+    return [
+        xy_to_angle(util.xyz_to_xyY(cmfs[r])[:-1], white, start)
+        for r in range(cmfs.start, cmfs.end + 1, cmfs.step)
+    ], start
+
+
+def compare_angle(f: float, cmfs: cmfs.CMFs, p: float, n: float, t: float, w: Vector, o: float) -> float:
+    """Compare the calculated angle with the target."""
+
+    return t - xy_to_angle(cmfs.xy(alg.lerp(p, n, f)), w, o)
+
+
+def xy_to_angle(xy: VectorLike, white: VectorLike, offset: float = 0.0, invert: bool = False) -> float:
+    """
+    Translate xy to an angle with white being the origin.
+
+    If offset is provided, make the angle relative to the offset angle.
+
+    If invert is requested, we want to rotate the xy point 180 degrees.
+    """
+
+    norm = alg.subtract(xy, white, dims=alg.D1)
+    if invert:
+        norm = alg.multiply(norm, -1, dims=alg.D1_SC)
+    if offset:
+        angle = (alg.rect_to_polar(*norm)[1] - offset) % 360.0
+    else:
+        angle = alg.rect_to_polar(*norm)[1]
+    if angle <= alg.ATOL:
+        angle = 360.0
+    return angle
+
+
+def ray_line_intersect(
+    a1: VectorLike,
+    a2: VectorLike,
+    b1: VectorLike,
+    b2: VectorLike,
+    abs_tol: float = alg.ATOL
+) -> Vector | None:
+    """Find the intersection of a 2D ray and line."""
+
+    da = [a - b for a, b in zip(a2, a1)]
+    db = [a - b for a, b in zip(b2, b1)]
+    dp = [a - b for a, b in zip(a1, b1)]
+    dap = [-da[1], da[0]]
+    denom = alg.dot(dap, db, dims=alg.D1)
+    # Parallel cases
+    if abs(denom) < abs_tol:  # pragma: no cover
+        return None
+    t = alg.dot(dap, dp, dims=alg.D1) / denom
+    # Check if intersection is within bounds
+    if 0 <= t <= 1:
+        # Intersect
+        return alg.add(b1, alg.multiply(t, db, dims=alg.SC_D1), dims=alg.D1)
+    return None  # pragma: no cover
+
+
+def closest_wavelength(
+    xy: VectorLike,
+    white: VectorLike = WHITE,
+    reverse: bool = False,
+    closest: bool = True
+) -> tuple[float, Vector, Vector]:
+    """
+    Get the closest dominant wavelength.
+
+    Both intersections are returned, even if the other is on the line of purple.
+    The first point is always in the dominant direction. If the dominant cannot
+    be found, the complementary will be used and indicated with a negative sign.
+
+    If `reverse` is set, then the complementary wavelength is returned instead,
+    with the points arranged favoring the complementary wavelength. If it cannot
+    be found, the dominant wavelength is returned with a negative sign.
+
+    If `closet` is set, wavelengths are rounded to the closest.
+    """
+
+    w1 = w2 = math.nan
+    dominant = [math.nan, math.nan]
+    complementary = [math.nan, math.nan]
+
+    # Achromatic, no wavelength
+    if all(abs(a - b) < alg.ATOL for a, b in zip(xy, white)):
+        return w1, dominant, complementary
+
+    # Look for first intersection of the line drawn through the white point
+    # and the current color with the spectral locus. Check the dominant and
+    # complementary, but return as soon as we have the dominant. If no dominant
+    # is found, we'll use the complementary.
+    cmfs_ = cmfs.CIE_1931_2DEG
+    locus, offset = get_locus_angles(cmfs_, tuple(white))
+    locus_start = cmfs_.start
+    locus_end = cmfs_.end
+    current = xy_to_angle(xy, white, offset)
+    invert = xy_to_angle(xy, white, offset, invert=True)
+    found = [False, False]
+    for i in range(1, len(locus) - 1):
+        # Get the next locus point angle
+        i0 = i - 1
+        a_prev = locus[i0]
+        a_next = locus[i]
+
+        # Check if our angle is greater than the current locus point's angle
+        for j in range(0, 2):
+            # Skip if:
+            # 1. We already found a solution.
+            # 2. Target is not between the two wavelengths.
+            # 3. An exception to (2) is if the range overlaps due to floating point noise.
+            #    Then we test if the target is larger than the previous when this overlap occurs.
+            target = invert if j else current
+            if found[j] or not (a_prev >= target and (target > a_next or (a_next > target and a_next > a_prev))):
+                continue
+
+            # Linear interpolation of a non-linear curve will yield some offset from our current angle.
+            # While the angle is likely to be "good enough", we can do better.
+            # Go with the best approximation we can find.
+            f, converged = alg.solve_bisect(
+                0,
+                1,
+                f=compare_angle,
+                args=(cmfs_, locus_start + i0, locus_start + i, target, white, offset)
+            )
+            if not converged:  # pragma: no cover
+                continue
+
+            w = alg.lerp(locus_start + i0, locus_start + i, f)
+            intersect = cmfs_.xy(w)
+
+            if j == 0:
+                dominant = intersect
+                w1 = w
+                found[j] = True
+                if not reverse:
+                    break
+            else:
+                complementary = intersect
+                w2 = w
+                found[j] = True
+                if reverse:
+                    break
+
+        if found[reverse]:
+            break
+
+    # Unlikely catastrophic failure
+    if not any(found):  # pragma: no cover
+        return w1, dominant, complementary
+
+    # Swap dominant and complementary if we are looking for complementary
+    if reverse:
+        dominant, complementary = complementary, dominant
+        w1, w2 = w2, w1
+
+    # If dominant isn't found, it is on the line of purples; use complementary instead
+    if not found[reverse]:
+        pt = ray_line_intersect(white, xy, cmfs_.xy(locus_start),  cmfs_.xy(locus_end))
+        # Shouldn't happen, but just in case
+        if pt is not None:  # pragma: no cover
+            dominant = pt
+        w1 = -alg.round_half_up(w2) if closest else -w2
+    else:
+        complementary = dominant
+        if closest:
+            w1 = alg.round_half_up(w1)
+
+    return w1, dominant, complementary
+
+
+def wavelength_to_color(wavelength: float) -> Vector:
+    """Return the XYZ value for the specified wavelength."""
+
+    cmfs_ = cmfs.CIE_1931_2DEG
+    if wavelength < cmfs_.start or wavelength > cmfs_.end:
+        raise ValueError(f'{wavelength}nm exceeds the range of {cmfs_.start}nm - {cmfs_.end}nm')
+
+    # Wavelength is within the CMFs
+    return cmfs_[wavelength]

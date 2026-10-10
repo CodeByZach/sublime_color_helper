@@ -5,6 +5,7 @@ import abc
 import functools
 import random
 import math
+from contextlib import contextmanager
 from . import cat
 from . import distance
 from . import convert
@@ -14,16 +15,16 @@ from . import interpolate
 from . import filters
 from . import contrast
 from . import harmonies
-from . import average
 from . import temperature
 from . import util
 from . import algebra as alg
+from . import spectrum
 from .channels import ANGLE_DEG, ANGLE_RAD, ANGLE_GRAD, ANGLE_TURN, ANGLE_NULL
-from .deprecate import warn_deprecated
+from .deprecate import warn_deprecated, deprecated
 from itertools import zip_longest as zipl
 from .css import parse
 from .types import VectorLike, Vector, ColorInput
-from .spaces import Space, RGBish
+from .spaces import Space
 from .spaces.hsv import HSV
 from .spaces.srgb.css import sRGB
 from .spaces.srgb_linear import sRGBLinear
@@ -62,11 +63,16 @@ from .distance.delta_e_itp import DEITP
 from .distance.delta_e_z import DEZ
 from .contrast import ColorContrast
 from .contrast.wcag21 import WCAG21Contrast
-from .gamut import Fit
+from .gamut import Fit, Gamut
 from .gamut.fit_minde_chroma import MINDEChroma
 from .gamut.fit_lch_chroma import LChChroma
 from .gamut.fit_oklch_chroma import OkLChChroma
 from .gamut.fit_raytrace import RayTrace
+from .gamut.fit_scale import Scale
+from .gamut.fit_scale_luminance import ScaleLuminance
+from .gamut.pointer import PointerGamut
+from .gamut.macadam_limits import MacAdamLimits
+from .gamut.visible_spectrum import VisibleSpectrum
 from .cat import CAT, Bradford
 from .filters import Filter
 from .filters.w3c_filter_effects import Sepia, Brightness, Contrast, Saturate, Opacity, HueRotate, Grayscale, Invert
@@ -82,7 +88,7 @@ from .temperature import CCT
 from .temperature.ohno_2013 import Ohno2013
 from .temperature.robertson_1968 import Robertson1968
 from .types import Plugin
-from typing import Iterator, overload, Sequence, Iterable, Any, Callable, Mapping
+from typing import Iterator, overload, Sequence, Iterable, Any, Callable, Mapping, cast
 if (3, 11) <= sys.version_info:
     from typing import Self
 else:
@@ -133,8 +139,9 @@ class ColorMeta(abc.ABCMeta):
             cls.CAT_MAP = cls.CAT_MAP.copy()  # type: dict[str, CAT]
             cls.FILTER_MAP = cls.FILTER_MAP.copy()  # type: dict[str, Filter]
             cls.CONTRAST_MAP = cls.CONTRAST_MAP.copy()  # type: dict[str, ColorContrast]
-            cls.INTERPOLATE_MAP = cls.INTERPOLATE_MAP.copy()  # type: dict[str, Interpolate[Any]]
+            cls.INTERPOLATE_MAP = cls.INTERPOLATE_MAP.copy()  # type: dict[str, Interpolate]
             cls.CCT_MAP = cls.CCT_MAP.copy()  # type: dict[str, CCT]
+            cls.GAMUT_MAP = cls.GAMUT_MAP.copy()  # type: dict[str, Gamut]
 
         # Ensure each derived class tracks its own conversion paths for color spaces
         # relative to the installed color space plugins.
@@ -161,8 +168,9 @@ class Color(metaclass=ColorMeta):
     CAT_MAP = {}  # type: dict[str, CAT]
     CONTRAST_MAP = {}  # type: dict[str, ColorContrast]
     FILTER_MAP = {}  # type: dict[str, Filter]
-    INTERPOLATE_MAP = {}  # type: dict[str, Interpolate[Self]]
+    INTERPOLATE_MAP = {}  # type: dict[str, Interpolate]
     CCT_MAP = {}  # type: dict[str, CCT]
+    GAMUT_MAP = {}  # type: dict[str, Gamut]
     PRECISION = util.DEF_PREC
     ROUNDING = util.DEF_ROUND_MODE
     FIT = util.DEF_FIT
@@ -226,10 +234,10 @@ class Color(metaclass=ColorMeta):
         ...
 
     @overload
-    def __setitem__(self, i: slice, v: Vector) -> None:
+    def __setitem__(self, i: slice, v: VectorLike) -> None:
         ...
 
-    def __setitem__(self, i: str | int | slice, v: float | Vector) -> None:
+    def __setitem__(self, i: str | int | slice, v: float | VectorLike) -> None:
         """Set channels."""
 
         space = self._space
@@ -374,6 +382,13 @@ class Color(metaclass=ColorMeta):
                 mapping = cls.CS_MAP
                 reset_convert_cache = True
                 p = i
+                if p.NAME in cls.GAMUT_MAP:
+                    raise ValueError(f"Color space '{p.NAME}' conflicts with gamut {p.NAME}")
+            elif isinstance(i, Gamut):
+                mapping = cls.GAMUT_MAP
+                p = i
+                if p.NAME in cls.CS_MAP:
+                    raise ValueError(f"Gamut {p.NAME} conflicts with color space {p.NAME}")
             elif isinstance(i, DeltaE):
                 mapping = cls.DE_MAP
                 p = i
@@ -436,12 +451,15 @@ class Color(metaclass=ColorMeta):
                 cls.INTERPOLATE_MAP.clear()
                 cls.CCT_MAP.clear()
                 cls.FIT_MAP.clear()
+                cls.GAMUT_MAP.clear()
                 return
 
             ptype, name = p.split(':', 1)
             if ptype == 'space':
                 mapping = cls.CS_MAP
                 reset_convert_cache = True
+            elif ptype == 'gamut':
+                mapping = cls.GAMUT_MAP
             elif ptype == "delta-e":
                 mapping = cls.DE_MAP
             elif ptype == 'cat':
@@ -519,9 +537,12 @@ class Color(metaclass=ColorMeta):
         temp: float,
         duv: float = 0.0,
         *,
+        method: str | None = None,
         scale: bool = True,
         scale_space: str | None = None,
-        method: str | None = None,
+        max_saturation: bool = True,
+        clip_negative: bool = False,
+        preserve_luminance: bool = False,
         **kwargs: Any
     ) -> Self:
         """
@@ -538,8 +559,17 @@ class Color(metaclass=ColorMeta):
         """
 
         cct = temperature.cct(method, cls)
-        color = cct.from_cct(cls, space, temp, duv, scale, scale_space, **kwargs)
-        return color
+        uv, name = cct.from_cct(temp, duv, **kwargs)
+        return cls.chromaticity(
+            space,
+            uv,
+            name,
+            scale=scale,
+            scale_space=scale_space,
+            max_saturation=max_saturation,
+            clip_negative=clip_negative,
+            preserve_luminance=preserve_luminance
+        )
 
     def cct(self, *, method: str | None = None, **kwargs: Any) -> Vector:
         """Get color temperature."""
@@ -647,6 +677,22 @@ class Color(metaclass=ColorMeta):
 
         return this
 
+    @contextmanager
+    def within(
+        self,
+        space: str,
+        *,
+        norm: bool = True,
+        norm_out: bool | None = None
+    ) -> Iterator[Self]:
+        """Manipulate the color within the provided space while under context."""
+
+        n1 = norm
+        n2 = n1 if norm_out is None else norm_out
+        orig_space = self._space.NAME
+        yield self.convert(space, norm=n1, in_place=True)
+        self.convert(orig_space, norm=n2, in_place=True)
+
     def is_achromatic(self) -> bool:
         """Test if color is achromatic."""
 
@@ -696,9 +742,18 @@ class Color(metaclass=ColorMeta):
         return self
 
     def to_string(self, **kwargs: Any) -> str:
-        """To string."""
+        """Serialize color to a string, gamut mapping the colors by default."""
 
         return self._space.to_string(self, **kwargs)
+
+    def serialize(self, *, fit: bool = False, **kwargs: Any) -> str:
+        """
+        Serialize color to a string.
+
+        Does not gamut map by default.
+        """
+
+        return self._space.to_string(self, fit=fit, **kwargs)
 
     def __repr__(self) -> str:
         """Representation."""
@@ -747,7 +802,7 @@ class Color(metaclass=ColorMeta):
                 '<div style="box-sizing: border-box; width: 50px; height: 50px; '
                 f'background-color: {self.convert("oklab").to_string()}; border: 2px solid hsl(0, 0%, 90%);"></div>',
                 '</div>',
-                f'<div>{self.to_string(fit=False)}</div>'
+                f'<div>{self.serialize()}</div>'
                 '</div>'
             ]
         )
@@ -761,12 +816,17 @@ class Color(metaclass=ColorMeta):
     def uv(self, mode: str = '1976', *, white: VectorLike | None = None) -> Vector:
         """Convert to `xy`."""
 
-        return self.split_chromaticity('uv-' + mode)[:-1]
+        return self.split_chromaticity('uv-' + mode, white=white)[:-1]
 
     def xy(self, *, white: VectorLike | None = None) -> Vector:
         """Convert to `xy`."""
 
-        return self.split_chromaticity('xy-1931')[:-1]
+        return self.split_chromaticity('xy-1931', white=white)[:-1]
+
+    def Y(self, *, white: VectorLike | None = None) -> float:
+        """Convert to `Y` (luminance)."""
+
+        return self.split_chromaticity('xy-1931', white=white)[-1]
 
     def split_chromaticity(
         self,
@@ -809,9 +869,12 @@ class Color(metaclass=ColorMeta):
         coords: VectorLike,
         cspace: str = 'uv-1976',
         *,
+        white: VectorLike | None = None,
         scale: bool = False,
         scale_space: str | None = None,
-        white: VectorLike | None = None
+        max_saturation: bool = False,
+        clip_negative: bool = False,
+        preserve_luminance: bool = False
     ) -> Self:
         """
         Create a color from chromaticity coordinates.
@@ -826,9 +889,6 @@ class Color(metaclass=ColorMeta):
         RGB space's gamut will only be rough approximations of the color due to gamut
         limitations. Default linear RGB space is linear sRGB.
         """
-
-        if scale_space is None:
-            scale_space = 'srgb-linear'
 
         # Use the white point of the target color space unless a white point is given.
         if white is None:
@@ -847,9 +907,14 @@ class Color(metaclass=ColorMeta):
         )
 
         # Normalize in the given RGB color space (ideally linear).
-        if scale and isinstance(cls.CS_MAP[scale_space], RGBish):
-            color.convert(scale_space, in_place=True)
-            color[:-1] = util.rgb_scale(color.coords())
+        if scale:
+            gamut.scale_rgb(
+                color,
+                scale_space=scale_space if scale_space is not None else 'srgb-linear',
+                max_saturation=max_saturation,
+                clip_negative=clip_negative,
+                preserve_luminance=preserve_luminance
+            )
 
         # Convert to targeted color space
         if space != color.space():
@@ -859,7 +924,8 @@ class Color(metaclass=ColorMeta):
 
     @classmethod
     def convert_chromaticity(
-        cls, cspace1: str,
+        cls,
+        cspace1: str,
         cspace2: str,
         coords: VectorLike,
         *,
@@ -984,6 +1050,11 @@ class Color(metaclass=ColorMeta):
         if method == 'clip':
             return self.clip(space)
 
+        # Handle special gamut requests
+        if space in self.GAMUT_MAP:
+            cast('Self', self.GAMUT_MAP[space].fit(self, method=method, **kwargs))
+            return self
+
         # If within gamut, just normalize hue range by calling clip.
         if self.in_gamut(space, tolerance=0):
             self.clip(space)
@@ -1005,11 +1076,18 @@ class Color(metaclass=ColorMeta):
         mapping.fit(self, target, **kwargs)
         return self
 
-    def in_gamut(self, space: str | None = None, *, tolerance: float = util.DEF_FIT_TOLERANCE) -> bool:
+    def in_gamut(self, space: str | None = None, *, tolerance: float | None = None, **kwargs: Any) -> bool:
         """Check if current color is in gamut."""
 
         if space is None:
             space = self.space()
+
+        if tolerance is None:
+            tolerance = util.DEF_FIT_TOLERANCE
+
+        # Handle special gamut requests
+        if space in self.GAMUT_MAP:
+            return self.GAMUT_MAP[space].in_gamut(self, tolerance=tolerance, **kwargs)
 
         # Check if gamut is in the provided space
         c = self.convert(space, norm=False) if space is not None and space != self.space() else self
@@ -1025,15 +1103,18 @@ class Color(metaclass=ColorMeta):
 
         return gamut.verify(c, tolerance)
 
-    def in_pointer_gamut(self, *, tolerance: float = util.DEF_FIT_TOLERANCE) -> bool:
+    @deprecated("`color.in_pointer_gamut()` has been deprecated in favor of using `color.in_gamut('pointer-gamut')`")
+    def in_pointer_gamut(self, *, tolerance: float = util.DEF_FIT_TOLERANCE) -> bool:  # pragma: no cover
         """Check if in pointer gamut."""
 
-        return gamut.pointer.in_pointer_gamut(self, tolerance)
+        return self.GAMUT_MAP['pointer-gamut'].in_gamut(self, tolerance)
 
-    def fit_pointer_gamut(self) -> Self:
+    @deprecated("`color.fit_pointer_gamut()` has been deprecated in favor of using `color.fit('pointer-gamut')`")
+    def fit_pointer_gamut(self) -> Self:  # pragma: no cover
         """Check if in pointer gamut."""
 
-        return gamut.pointer.fit_pointer_gamut(self)
+        self.GAMUT_MAP['pointer-gamut'].fit(self)
+        return self
 
     def mask(self, channel: str | Sequence[str], *, invert: bool = False, in_place: bool = False) -> Self:
         """Mask color channels."""
@@ -1155,7 +1236,7 @@ class Color(metaclass=ColorMeta):
             method if method is not None else cls.INTERPOLATOR,
             colors=colors,
             space=space,
-            out_space=out_space,
+            out_space=space if out_space is None else out_space,
             progress=progress,
             hue=hue,
             premultiplied=premultiplied,
@@ -1168,6 +1249,41 @@ class Color(metaclass=ColorMeta):
         )
 
     @classmethod
+    def weighted_mix(
+        cls,
+        colors: Sequence[ColorInput],
+        weights: Sequence[float] | None = None,
+        *,
+        space: str | None = None,
+        out_space: str | None = None,
+        method: str | None = None,
+        premultiplied: bool = True,
+        carryforward: bool = False,
+        powerless: bool = False,
+        hue: str = 'shorter',
+        **kwargs: Any
+    ) -> Self:
+        """Perform a weighted mix of multiple colors."""
+
+        color = interpolate.weighted_mix(
+            cls,
+            method if method is not None else cls.INTERPOLATOR,
+            colors,
+            weights,
+            space,
+            premultiplied,
+            carryforward,
+            powerless,
+            hue,
+            **kwargs
+        )
+        if out_space is None:
+            out_space = space
+        if out_space is not None and color.space() != out_space:
+            color.convert(out_space, in_place=True)
+        return color
+
+    @classmethod
     def average(
         cls,
         colors: Iterable[ColorInput],
@@ -1176,23 +1292,26 @@ class Color(metaclass=ColorMeta):
         space: str | None = None,
         out_space: str | None = None,
         premultiplied: bool = True,
+        carryforward: bool | None = False,
         **kwargs: Any
     ) -> Self:
         """Average the colors."""
 
-        if space is None:
-            space = cls.AVERAGE
-
-        if out_space is None:
-            out_space = space
-
-        return average.average(
+        color = interpolate.multi_mix(
             cls,
             colors,
             weights,
-            space,
-            premultiplied
-        ).convert(out_space, in_place=True)
+            space if space is not None else cls.AVERAGE,
+            premultiplied,
+            carryforward if carryforward is not None else cls.CARRYFORWARD,
+            average=True
+        )
+
+        if out_space is None:
+            out_space = space
+        if out_space is not None and color.space() != out_space:
+            color.convert(out_space, in_place=True)
+        return color
 
     def filter(  # noqa: A003
         self,
@@ -1312,6 +1431,49 @@ class Color(metaclass=ColorMeta):
 
         color = self._handle_color_input(color)
         return contrast.contrast(method, self, color)
+
+    def wavelength(
+        self,
+        *,
+        white: VectorLike | None = None,
+        complementary: bool = False,
+        closest: bool = True
+    ) -> tuple[float, Vector, Vector]:
+        """Get the dominant wavelength."""
+
+        return spectrum.closest_wavelength(
+            self.xy(),
+            white or self._space.WHITE,
+            reverse=complementary,
+            closest=closest
+        )
+
+    @classmethod
+    def from_wavelength(
+        cls,
+        space: str,
+        wavelength: float,
+        *,
+        white: VectorLike | None = None,
+        scale: bool = True,
+        scale_space: str | None = None,
+        max_saturation: bool = True,
+        clip_negative: bool = False,
+        preserve_luminance: bool = False
+    ) -> Self:
+        """Create a color from a wavelength."""
+
+        return cls.chromaticity(
+            space,
+            util.xyz_to_xyY(spectrum.wavelength_to_color(wavelength)),
+            'xy-1931',
+            white=white,
+            scale=scale,
+            scale_space=scale_space,
+            max_saturation=max_saturation,
+            clip_negative=clip_negative,
+            preserve_luminance=preserve_luminance
+        )
 
     @overload
     def get(self,
@@ -1542,6 +1704,11 @@ Color.register(
         ProPhotoRGB(),
         ProPhotoRGBLinear(),
 
+        # Gamuts
+        PointerGamut(),
+        VisibleSpectrum(),
+        MacAdamLimits(),
+
         # CAT
         Bradford(),
 
@@ -1560,6 +1727,8 @@ Color.register(
         LChChroma(),
         OkLChChroma(),
         RayTrace(),
+        Scale(),
+        ScaleLuminance(),
 
         # Filters
         Sepia(),

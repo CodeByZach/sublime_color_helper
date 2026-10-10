@@ -2,13 +2,13 @@
 from __future__ import annotations
 import math
 from .. import algebra as alg
-from ..interpolate import Interpolator, Interpolate
+from . import Interpolator, Interpolate
 from ..types import Vector, AnyColor
 from typing import Any
 
 
 def adjust_shorter(h1: float, h2: float, offset: float, mx: float) -> tuple[float, float]:
-    """Adjust the given hues."""
+    """Adjust the given hues such that they favor the shorter arc."""
 
     half = mx / 2
     d = h2 - h1
@@ -22,7 +22,7 @@ def adjust_shorter(h1: float, h2: float, offset: float, mx: float) -> tuple[floa
 
 
 def adjust_longer(h1: float, h2: float, offset: float, mx: float) -> tuple[float, float]:
-    """Adjust the given hues."""
+    """Adjust the given hues such that they favor the longer arc."""
 
     half = mx / 2
     d = h2 - h1
@@ -36,7 +36,7 @@ def adjust_longer(h1: float, h2: float, offset: float, mx: float) -> tuple[float
 
 
 def adjust_increase(h1: float, h2: float, offset: float, mx: float) -> tuple[float, float]:
-    """Adjust the given hues."""
+    """Adjust the given hues such that they are increasing."""
 
     if h2 < h1:
         h2 += mx
@@ -45,7 +45,7 @@ def adjust_increase(h1: float, h2: float, offset: float, mx: float) -> tuple[flo
 
 
 def adjust_decrease(h1: float, h2: float, offset: float, mx: float) -> tuple[float, float]:
-    """Adjust the given hues."""
+    """Adjust the given hues such that they are decreasing."""
 
     if h2 > h1:
         h2 -= mx
@@ -115,7 +115,7 @@ class InterpolatorContinuous(Interpolator[AnyColor]):
         Additionally, any undefined value have a new control point generated via
         linear interpolation. This is the only approach to provide a non-bias, non-breaking
         way to handle things like achromatic hues in a cylindrical space. It also balances
-        non cylindrical values. Since the B-spline needs a a continual path and since we
+        non cylindrical values. Since the B-spline needs a continual path and since we
         have a sliding window that takes into account 4 points at a time, we must consider
         a more broad context than what is done in piecewise linear.
         """
@@ -123,6 +123,8 @@ class InterpolatorContinuous(Interpolator[AnyColor]):
         coords = self.coordinates
         end = self.length - 2
         hue_index = self.hue_index
+        is_longer = self.hue == 'longer'
+        mx = self.max_hue
 
         # Normalize hue
         offset = 0.0
@@ -183,8 +185,15 @@ class InterpolatorContinuous(Interpolator[AnyColor]):
                     # else just backfill the current known value.
                     point = 1 / (x - backfill + 1)
                     for e, c in enumerate(coords[backfill:x], 1):
-                        p = alg.lerp(last, b, point * e) if last is not None else b
-                        c[i] = p
+                        if last is None:
+                            # For hue longer, we need to simulate the behavior of resolving undefined hue before fix-up
+                            if is_longer and hue_index == i:
+                                c[i] = alg.lerp(b - mx, b, point * (e - 1))
+                            # Handle all other channels and hue approaches in the default way
+                            else:
+                                c[i] = b
+                        else:
+                            c[i] = alg.lerp(last, b, point * e)
 
                         # We just filled an alpha hole, premultiply the coordinates
                         if self.premultiplied and i == alpha:
@@ -205,9 +214,14 @@ class InterpolatorContinuous(Interpolator[AnyColor]):
             # Replace all undefined values that occurred prior to
             # finding the current defined value that have not been backfilled
             if backfill is not None and last is not None:
-                for c in coords[backfill:]:
-                    c[i] = last
-
+                point = (len(coords) - backfill)
+                for e, c in enumerate(coords[backfill:], 1):
+                    # For hue longer, we need to simulate the behavior of resolving undefined hue before fix-up
+                    if is_longer and hue_index == i:
+                        c[i] = alg.lerp(last, last + mx, point * e)
+                    # Handle all other channels and hue approaches in the default way
+                    else:
+                        c[i] = last
                     # We just filled an alpha hole, premultiply the coordinates
                     if self.premultiplied and i == alpha:
                         self.premultiply(c)
@@ -239,7 +253,7 @@ class InterpolatorContinuous(Interpolator[AnyColor]):
         return channels
 
 
-class Continuous(Interpolate[AnyColor]):
+class Continuous(Interpolate):
     """Continuous interpolation plugin."""
 
     NAME = "continuous"

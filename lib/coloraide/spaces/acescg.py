@@ -5,21 +5,21 @@ https://www.oscars.org/science-technology/aces/aces-documentation
 """
 from __future__ import annotations
 from ..channels import Channel
-from ..spaces.srgb_linear import sRGBLinear
+from .srgb_linear import RGB
 from .. import algebra as alg
 from ..cat import WHITES
 from ..types import Vector
 
 AP1_TO_XYZ = [
-    [0.6624541811085053, 0.13400420645643313, 0.15618768700490782],
-    [0.27222871678091454, 0.6740817658111483, 0.05368951740793706],
-    [-0.005574649490394108, 0.004060733528982825, 1.0103391003129973]
+    [ 0.6624541811085053  ,  0.13400420645643313 ,  0.15618768700490782 ],
+    [ 0.27222871678091454 ,  0.6740817658111483  ,  0.05368951740793706 ],
+    [-0.005574649490394108,  0.004060733528982825,  1.0103391003129973  ]
 ]
 
 XYZ_TO_AP1 = [
-    [1.6410233796943259, -0.32480329418479004, -0.23642469523761225],
-    [-0.663662858722983, 1.615331591657338, 0.01675634768553015],
-    [0.01172189432837537, -0.008284441996237407, 0.9883948585390213]
+    [ 1.6410233796943259  , -0.32480329418479004 , -0.23642469523761225 ],
+    [-0.663662858722983   ,  1.615331591657338   ,  0.01675634768553015 ],
+    [ 0.01172189432837537 , -0.008284441996237407,  0.9883948585390213  ]
 ]
 
 
@@ -35,7 +35,7 @@ def xyz_to_acescg(xyz: Vector) -> Vector:
     return alg.matmul_x3(XYZ_TO_AP1, xyz, dims=alg.D2_D1)
 
 
-class ACEScg(sRGBLinear):
+class ACEScg(RGB):
     """The ACEScg color class."""
 
     BASE = "xyz-d65"
@@ -48,6 +48,8 @@ class ACEScg(sRGBLinear):
         Channel("b", 0.0, 65504.0, bound=True)
     )
     DYNAMIC_RANGE = 'hdr'
+    TO_XYZ = AP1_TO_XYZ
+    TO_RGB = XYZ_TO_AP1
 
     def to_base(self, coords: Vector) -> Vector:
         """To XYZ."""

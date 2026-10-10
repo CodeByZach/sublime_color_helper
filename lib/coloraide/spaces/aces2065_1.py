@@ -5,21 +5,21 @@ https://www.oscars.org/science-technology/aces/aces-documentation
 """
 from __future__ import annotations
 from ..channels import Channel
-from ..spaces.srgb_linear import sRGBLinear
+from .srgb_linear import RGB
 from .. import algebra as alg
 from ..cat import WHITES
 from ..types import Vector
 
 AP0_TO_XYZ = [
-    [0.9525523959381857, 0.0, 9.367863166046855e-05],
-    [0.34396644976507507, 0.7281660966134857, -0.07213254637856079],
-    [0.0, 0.0, 1.0088251843515859]
+    [ 9.5255239593818570e-01,  0.0000000000000000e+00,  9.3678631660468550e-05],
+    [ 3.4396644976507507e-01,  7.2816609661348570e-01, -7.2132546378560790e-02],
+    [ 0.0000000000000000e+00,  0.0000000000000000e+00,  1.0088251843515859e+00]
 ]
 
 XYZ_TO_AP0 = [
-    [1.0498110174979742, 0.0, -9.748454057925287e-05],
-    [-0.49590302307731976, 1.3733130458157063, 0.09824003605730999],
-    [0.0, 0.0, 0.991252018200499]
+    [ 1.0498110174979742e+00,  0.0000000000000000e+00, -9.7484540579252870e-05],
+    [-4.9590302307731976e-01,  1.3733130458157063e+00,  9.8240036057309990e-02],
+    [ 0.0000000000000000e+00,  0.0000000000000000e+00,  9.9125201820049900e-01]
 ]
 
 MIN = 0.0
@@ -38,7 +38,7 @@ def xyz_to_aces(xyz: Vector) -> Vector:
     return alg.matmul_x3(XYZ_TO_AP0, xyz, dims=alg.D2_D1)
 
 
-class ACES20651(sRGBLinear):
+class ACES20651(RGB):
     """The ACES color class."""
 
     BASE = "xyz-d65"
@@ -51,6 +51,8 @@ class ACES20651(sRGBLinear):
         Channel("b", 0.0, 65504.0, bound=True)
     )
     DYNAMIC_RANGE = 'hdr'
+    TO_XYZ = AP0_TO_XYZ
+    TO_RGB = XYZ_TO_AP0
 
     def to_base(self, coords: Vector) -> Vector:
         """To XYZ."""

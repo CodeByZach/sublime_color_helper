@@ -36,15 +36,15 @@ from ..types import Vector, Matrix
 from . oklab import OKLAB_TO_LMS3
 
 SRGBL_TO_LMS = [
-    [0.4122214694707629, 0.5363325372617349, 0.051445993267502196],
-    [0.2119034958178251, 0.6806995506452345, 0.10739695353694051],
-    [0.08830245919005637, 0.2817188391361215, 0.6299787016738223]
+    [0.4122214694707629  , 0.5363325372617349  , 0.051445993267502196],
+    [0.2119034958178251  , 0.6806995506452345  , 0.10739695353694051 ],
+    [0.08830245919005637 , 0.2817188391361215  , 0.6299787016738223  ]
 ]
 
 LMS_TO_SRGBL = [
-    [4.076741636075959, -3.307711539258062, 0.2309699031821041],
-    [-1.2684379732850313, 2.6097573492876878, -0.3413193760026569],
-    [-0.004196076138675526, -0.703418617935936, 1.7076146940746113]
+    [ 4.076741636075959   , -3.307711539258062   ,  0.2309699031821041  ],
+    [-1.2684379732850313  ,  2.6097573492876878  , -0.3413193760026569  ],
+    [-0.004196076138675526, -0.703418617935936   ,  1.7076146940746113  ]
 ]
 
 SRGBL_COEFF = [
@@ -240,23 +240,23 @@ def find_gamut_intersection(
         mdt2 = 6 * (m_dt ** 2) * m_
         sdt2 = 6 * (s_dt ** 2) * s_
 
-        r = alg.matmul_x3(lms_to_rgb[0], [l, m, s], dims=alg.D1) - 1
-        r1 = alg.matmul_x3(lms_to_rgb[0], [ldt, mdt, sdt], dims=alg.D1)
-        r2 = alg.matmul_x3(lms_to_rgb[0], [ldt2, mdt2, sdt2], dims=alg.D1)
+        r = alg.vdot_x3(lms_to_rgb[0], [l, m, s]) - 1
+        r1 = alg.vdot_x3(lms_to_rgb[0], [ldt, mdt, sdt])
+        r2 = alg.vdot_x3(lms_to_rgb[0], [ldt2, mdt2, sdt2])
 
         u_r = r1 / (r1 * r1 - 0.5 * r * r2)
         t_r = -r * u_r
 
-        g = alg.matmul_x3(lms_to_rgb[1], [l, m, s], dims=alg.D1) - 1
-        g1 = alg.matmul_x3(lms_to_rgb[1], [ldt, mdt, sdt], dims=alg.D1)
-        g2 = alg.matmul_x3(lms_to_rgb[1], [ldt2, mdt2, sdt2], dims=alg.D1)
+        g = alg.vdot_x3(lms_to_rgb[1], [l, m, s]) - 1
+        g1 = alg.vdot_x3(lms_to_rgb[1], [ldt, mdt, sdt])
+        g2 = alg.vdot_x3(lms_to_rgb[1], [ldt2, mdt2, sdt2])
 
         u_g = g1 / (g1 * g1 - 0.5 * g * g2)
         t_g = -g * u_g
 
-        b = alg.matmul_x3(lms_to_rgb[2], [l, m, s], dims=alg.D1) - 1
-        b1 = alg.matmul_x3(lms_to_rgb[2], [ldt, mdt, sdt], dims=alg.D1)
-        b2 = alg.matmul_x3(lms_to_rgb[2], [ldt2, mdt2, sdt2], dims=alg.D1)
+        b = alg.vdot_x3(lms_to_rgb[2], [l, m, s]) - 1
+        b1 = alg.vdot_x3(lms_to_rgb[2], [ldt, mdt, sdt])
+        b2 = alg.vdot_x3(lms_to_rgb[2], [ldt2, mdt2, sdt2])
 
         u_b = b1 / (b1 * b1 - 0.5 * b * b2)
         t_b = -b * u_b

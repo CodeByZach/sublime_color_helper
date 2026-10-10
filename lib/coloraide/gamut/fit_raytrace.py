@@ -8,21 +8,78 @@ import math
 from functools import lru_cache
 from .. import util
 from .. import algebra as alg
-from ..gamut import Fit
-from ..cat import WHITES
-from ..spaces import Prism, Luminant, Space, HSLish, HSVish, HWBish
-from ..spaces.hsl import hsl_to_srgb, srgb_to_hsl
-from ..spaces.hsv import hsv_to_srgb, srgb_to_hsv
-from ..spaces.hwb import hwb_to_hsv, hsv_to_hwb
-from ..spaces.srgb_linear import sRGBLinear
+from . import Fit, coerce_to_rgb
 from .tools import adaptive_hue_independent
-from ..types import Vector, VectorLike
-from typing import Callable, Any, TYPE_CHECKING  # noqa: F401
+from ..spaces import Space, Prism, Luminant
+from ..spaces.oklab import LMS_TO_XYZD65, OKLAB_TO_LMS3, LMS3_TO_OKLAB
+from ..cat import WHITES, calc_adaptation_matrices, Bradford, CAT, VonKries
+from ..types import Vector, VectorLike, Matrix
+from typing import Any, TYPE_CHECKING  # noqa: F401
 
 if TYPE_CHECKING:  #pragma: no cover
     from ..color import Color
 
 WHITE = util.xy_to_xyz(WHITES['2deg']['D65'])
+CSS_FAST_PATH = {'oklab', 'oklch'}
+TO_RGB = 'TO_RGB'
+
+
+def to_rect(coords: Vector, c:int, h: int) -> Vector:
+    """Polar to rectangular."""
+
+    coords[c], coords[h] = alg.polar_to_rect(coords[c], coords[h])
+    return coords
+
+
+def to_polar(coords: Vector, c:int, h: int) -> Vector:
+    """Rectangular to rectangular."""
+
+    coords[c], coords[h] = alg.rect_to_polar(coords[c], coords[h])
+    return coords
+
+
+@lru_cache(maxsize=10)
+def get_conversion_matrices(name: str, space: Space, cat: str, adapt: CAT) -> tuple[Matrix, Matrix]:
+    """Get and cache conversion matrices to convert from linear RGB to LMS (Oklab variant)."""
+
+    # If we were ever to allow more complicated chromatic adaptation plugins,
+    # we may need to default to Bradford as others may not be compatible.
+    am = Bradford.MATRIX if not isinstance(adapt, VonKries) else adapt.MATRIX
+
+    d65 = WHITES['2deg']['D65']
+    m = space.TO_RGB  # type: ignore[attr-defined]
+    if space.WHITE != d65:
+        m = alg.matmul_x3(
+            m,
+            calc_adaptation_matrices(d65, space.WHITE, am),
+            dims=alg.D2
+        )
+    m = alg.matmul_x3(m, LMS_TO_XYZD65, dims=alg.D2)
+    return m, alg.inv(m)
+
+
+def from_oklch(coords: Vector, m: Matrix) -> Vector:
+    """Specialized conversion from OkLCh going straight from OkLCh to any linear RGB."""
+
+    return alg.matmul_x3(
+        m,
+        [c ** 3 for c in alg.matmul_x3(OKLAB_TO_LMS3, to_rect(coords[:], 1, 2), dims=alg.D2_D1)],
+        dims=alg.D2_D1
+    )
+
+
+def to_oklch(coords: Vector, m: Matrix) -> Vector:
+    """Specialized conversion to OkLCh going straight from any linear RGB to OkLCh."""
+
+    return to_polar(
+        alg.matmul_x3(
+            LMS3_TO_OKLAB,
+            [alg.nth_root(c, 3) for c in alg.matmul_x3(m, coords[:], dims=alg.D2_D1)],
+            dims=alg.D2_D1
+        ),
+        1,
+        2
+    )
 
 
 def project_onto(a: Vector, b: Vector, o: Vector) -> Vector:
@@ -59,99 +116,6 @@ def project_onto(a: Vector, b: Vector, o: Vector) -> Vector:
     return [vb1 * r + ox, vb2 * r + oy, vb3 * r + oz]
 
 
-def hwb_to_srgb(coords: Vector) -> Vector:  # pragma: no cover
-    """Convert HWB to sRGB."""
-
-    return hsv_to_srgb(hwb_to_hsv(coords))
-
-
-def srgb_to_hwb(coords: Vector) -> Vector:  # pragma: no cover
-    """Convert sRGB to HWB."""
-
-    return hsv_to_hwb(srgb_to_hsv(coords))
-
-
-def to_rect(coords: Vector, c:int, h: int) -> Vector:
-    """Polar to rectangular."""
-
-    coords[c], coords[h] = alg.polar_to_rect(coords[c], coords[h])
-    return coords
-
-
-def to_polar(coords: Vector, c:int, h: int) -> Vector:
-    """Rectangular to rectangular."""
-
-    coords[c], coords[h] = alg.rect_to_polar(coords[c], coords[h])
-    return coords
-
-
-@lru_cache(maxsize=20, typed=True)
-def coerce_to_rgb(cs: Space) -> Space:
-    """
-    Coerce an HSL, HSV, or HWB color space to RGB to allow us to ray trace the gamut.
-
-    It is rare to have a color space that is bound to an RGB gamut that does not exist as an RGB
-    defined RGB space. HPLuv is one that is defined only as a cylindrical, HSL-like space. Okhsl
-    and Okhsv are another whose gamut is meant to target sRGB, but it is very fuzzy and has sRGB
-    colors not quite in gamut, and others that exceed the sRGB gamut.
-
-    For gamut mapping, RGB cylindrical spaces can be coerced into an RGB form using traditional
-    HSL, HSV, or HWB approaches which is good enough.
-    """
-
-    if isinstance(cs, HSLish):
-        to_ = hsl_to_srgb  # type: Callable[[Vector], Vector]
-        from_ = srgb_to_hsl  # type: Callable[[Vector], Vector]
-    elif isinstance(cs, HSVish):
-        to_ = hsv_to_srgb
-        from_ = srgb_to_hsv
-    elif isinstance(cs, HWBish):  # pragma: no cover
-        to_ = hwb_to_srgb
-        from_ = srgb_to_hwb
-    else:  # pragma: no cover
-        raise ValueError(f'Cannot coerce {cs.NAME} to an RGB space.')
-
-    class RGB(sRGBLinear):
-        """Custom RGB class."""
-
-        NAME = f'-rgb-{cs.NAME}'
-        BASE = cs.NAME
-        GAMUT_CHECK = None
-        CLIP_SPACE = None
-        WHITE = cs.WHITE
-        DYAMIC_RANGE = cs.DYNAMIC_RANGE
-        INDEXES = cs.indexes()
-        # Scale saturation and lightness (or HWB whiteness and blackness)
-        SCALE_SAT = cs.channels[INDEXES[1]].high
-        SCALE_LIGHT = cs.channels[INDEXES[2]].high
-
-        def to_base(self, coords: Vector) -> Vector:
-            """Convert from RGB to HSL."""
-
-            coords = from_(coords)
-            if self.SCALE_SAT != 1:
-                coords[1] *= self.SCALE_SAT
-            if self.SCALE_LIGHT != 1:
-                coords[2] *= self.SCALE_LIGHT
-            ordered = [0.0, 0.0, 0.0]
-            for e, c in enumerate(coords):
-                ordered[self.INDEXES[e]] = c
-            return ordered
-
-        def from_base(self, coords: Vector) -> Vector:
-            """Convert from HSL to RGB."""
-
-            coords = [coords[i] for i in self.INDEXES]
-            if self.SCALE_SAT != 1:
-                coords[1] /= self.SCALE_SAT
-            if self.SCALE_LIGHT != 1:
-                coords[2] /= self.SCALE_LIGHT
-            coords = to_(coords)
-            return coords
-
-    return RGB()
-
-
 def raytrace_box(
     start: Vector,
     end: Vector,
@@ -176,8 +140,10 @@ def raytrace_box(
         bx = bmax[i]
 
         # Non parallel case
-        if d:
-            inv_d = 1 / d
+        # 64-bit uses a threshold of 1e-12
+        # 32-bit should use 1e-6
+        if abs(d) > alg.ATOL:
+            inv_d = 1.0 / d
             t1 = (bn - a) * inv_d
             t2 = (bx - a) * inv_d
             tnear = max(min(t1, t2), tnear)
@@ -192,14 +158,11 @@ def raytrace_box(
         return []
 
     # Favor the intersection first in the direction start -> end
-    if tnear < 0:
+    if tnear < 0.0:
         tnear = tfar
 
-    # An infinitesimally small point was used, not a ray.
-    # The origin is the intersection. Our use case will
-    # discard such scenarios, but others may wish to set
-    # intersection to origin.
-    if math.isinf(tnear):
+    # Point is  close to the surface, so `tnear` could be very large.
+    if not math.isfinite(tnear):
         return []
 
     # Calculate intersection interpolation.
@@ -210,110 +173,202 @@ def raytrace_box(
     ]
 
 
-class RayTrace(Fit):
-    """Gamut mapping by using ray tracing."""
+def css_fast_path(
+    color: Color,
+    cs: Space,
+    pspace: str,
+    adaptive: float,
+    mn: float,
+    mx: float,
+    **kwargs: Any
+) -> None:
+    """Path that optimizes conversions for CSS defaults of an Oklab/OkLCh perceptual space and linear RGB target."""
 
-    NAME = "raytrace"
-    PSPACE = "oklch"
+    # RGB linear space
+    rspace = cs.NAME
 
-    def fit(
-        self,
-        color: Color,
-        space: str,
-        *,
-        pspace: str | None = None,
-        adaptive: float = 0.0,
-        **kwargs: Any
-    ) -> None:
-        """Scale the color within its gamut but preserve L and h as much as possible."""
+    # Set the minimum bounds
+    bmax = [mx] * 3
+    bmin = [mn] * 3
 
-        if pspace is None:
-            pspace = self.PSPACE
-        cs = color.CS_MAP[space]
+    # Ensure we are in the proper perceptual space or normalize values
+    orig = color.space()
+    mapcolor = color.convert(pspace, norm=False) if orig != pspace else color.clone().normalize(nans=False)
+    mapcoords = mapcolor[:-1]
 
-        # Requires an RGB-ish or Prism space, preferably a linear space.
-        # Coerce RGB cylinders with no defined RGB space to RGB
-        coerced = False
-        if not isinstance(cs, Prism) or isinstance(cs, Luminant):
-            coerced = True
-            cs = coerce_to_rgb(cs)
+    # Ensure we are working in OkLCh and
+    if pspace == 'oklab':
+        to_polar(mapcoords, 1, 2)
 
-        # Get the maximum cube size, usually `[1.0, 1.0, 1.0]`
-        bmax = [chan.high for chan in cs.CHANNELS]
+    # Get Oklab conversion matrices from linear RGB -> Oklab LMS
+    adapt = color.CHROMATIC_ADAPTATION
+    m, mi = get_conversion_matrices(rspace, cs, adapt, color.CAT_MAP[adapt])
 
-        # If there is a linear version of the RGB space, results will be better if we use that.
-        # Recalculate the bounding box relative to the linear version.
-        linear = cs.linear()
-        if linear and linear in color.CS_MAP:
-            subtractive = cs.SUBTRACTIVE
-            cs = color.CS_MAP[linear]
-            if subtractive != cs.SUBTRACTIVE:
-                bmax = color.new(space, [chan.low for chan in cs.CHANNELS]).convert(linear, in_place=True)[:-1]
-            else:
-                bmax = color.new(space, bmax).convert(linear, in_place=True)[:-1]
-            space = linear
+    # Calculate the achromatic version of the color
+    achroma = mapcoords[:]
+    achroma[1] = 0.0
 
-        # Get the minimum bounds
-        bmin = [chan.low for chan in cs.CHANNELS]
+    # If value is provided for adaptive lightness, calculate a lightness
+    # anchor point relative to the hue independent mid point. Scale lightness and
+    # chroma by the max lightness to get lightness between 0 and 1.
+    if adaptive:
+        max_light = color.new('xyz-d65', WHITE).convert(pspace, in_place=True)[0]
+        achroma[0] = adaptive_hue_independent(
+            mapcoords[0] / max_light,
+            max(mapcoords[1], 0) / max_light,
+            adaptive
+        ) * max_light
 
-        orig = color.space()
-        mapcolor = color.convert(pspace, norm=False) if orig != pspace else color.clone().normalize(nans=False)
-        polar = mapcolor._space.is_polar()
-        achroma = mapcolor.clone()
+    # Calculate achromatic anchor.
+    anchor = from_oklch(achroma, m)
+    # This allows us to find the maximum lightness for HDR RGB and SDR RGB.
+    # Some perceptual spaces do not have a traditional achromatic axis that aligns
+    # with the RGB achromatic line, so this would also project and clamp the achromatic
+    # value to the RGB achromatic line.
+    anchor = project_onto(anchor, bmax, bmin)
 
-        # Different perceptual spaces may have components in different orders so capture their indexes
+    # Return white or black if the achromatic version is not within the RGB cube.
+    # HDR colors currently use the RGB maximum lightness. We do not currently
+    # clip HDR colors to SDR white, but that could be done if required.
+    if anchor == bmax:
+        color.update(rspace, bmax, mapcolor[-1])
+    elif anchor == bmin:
+        color.update(rspace, bmin, mapcolor[-1])
+    else:
+        # Ensure we are handling coordinates in the polar space to better retain hue
+        start = mapcoords[:]
+        end = achroma[:]
+
+        # Select an offset from the gamut surface according to unit type (64-bit for Python).
+        # 32-bit may require 1e-6
+        low = mn + alg.ATOL
+        high = mx + alg.ATOL
+
+        # Use an iterative process of casting rays to find the intersect with the RGB gamut
+        # and correcting the intersection onto the LCh chroma reduction path.
+        mapcoords[:] = from_oklch(mapcoords, m)
+        last = mapcoords[:]
+        if any(mn > x or x > mx for x in last):
+            for i in range(4):
+                if i:
+                    coords = to_oklch(mapcoords, mi)
+
+                    # Project the point onto the desired interpolation path in LCh if applying adaptive luminance
+                    if adaptive:
+                        coords = project_onto(coords, start, end)
+
+                    # For constant luminance, just correct lightness and hue in LCh
+                    else:
+                        coords[0] = start[0]
+                        coords[2] = start[2]
+                    mapcoords[:] = from_oklch(coords, m)
+
+                # Cast a ray and find the intersection with the gamut surface
+                coords = mapcoords[:]
+                intersection = raytrace_box(anchor, coords, bmin=bmin, bmax=bmax)
+
+                # If we cannot find an intersection, reset to last good color and quit
+                if not intersection:
+                    mapcoords[:] = last
+                    break
+
+                # Adjust anchor point closer to surface to improve results.
+                if i and all(low < x < high for x in coords):
+                    anchor = coords
+
+                # Update color with the intersection point on the RGB surface.
+                last = intersection
+                mapcoords[:] = last
+                continue
+
+        # Remove noise from floating point conversion.
+        color.update(rspace, [max(mn, min(mx, x)) for x in mapcoords], mapcolor[-1])
+
+
+def generic_path(
+    color: Color,
+    rspace: str,
+    cs: Space,
+    pspace: str,
+    adaptive: float,
+    mn: float,
+    mx: float,
+    coerced: bool,
+    **kwargs: Any
+) -> None:
+    """
+    Generic path for any perceptual space and coerced RGB handling that can be slower due to generalized logic.
+
+    Any perceptual space (Lab/LCh) can be used as the working space. In addition, RGB spaces do not have to be linear,
+    even though they are preferred. Lastly, cylindrical spaces with no associated RGB gamut can be coerced into a
+    geometric cube to allow for an increased chance of successful gamut mapping.
+    """
+
+    # Set the minimum bounds
+    bmax = [mx] * 3
+    bmin = [mn] * 3
+
+    # Ensure we are in the proper perceptual space or normalize values
+    orig = color.space()
+    mapcolor = color.convert(pspace, norm=False) if orig != pspace else color.clone().normalize(nans=False)
+
+    # Different perceptual spaces may have components in different orders so capture their indexes
+    # Calculate the achromatic version of the color
+    polar = mapcolor._space.is_polar()
+    achroma = mapcolor.clone()
+    if polar:
+        l, c, h = achroma._space.indexes()
+        achroma[c] = 0.0
+    else:
+        l, a, b = achroma._space.indexes()
+        achroma[a] = 0.0
+        achroma[b] = 0.0
+
+    # If value is provided for adaptive lightness, calculate a lightness
+    # anchor point relative to the hue independent mid point. Scale lightness and
+    # chroma by the max lightness to get lightness between 0 and 1.
+    if adaptive:
+        max_light = color.new('xyz-d65', WHITE).convert(pspace, in_place=True)[l]
+        achroma[l] = adaptive_hue_independent(
+            mapcolor[l] / max_light,
+            max(mapcolor[c] if polar else alg.rect_to_polar(mapcolor[a], mapcolor[b])[0], 0) / max_light,
+            adaptive
+        ) * max_light
+
+    # Calculate achromatic anchor.
+    anchor = cs.from_base(achroma.convert(rspace)[:-1]) if coerced else achroma.convert(rspace)[:-1]
+    # This allows us to find the maximum lightness for HDR RGB and SDR RGB.
+    # Some perceptual spaces do not have a traditional achromatic axis that aligns
+    # with the RGB achromatic line, so this would also project and clamp the achromatic
+    # value to the RGB achromatic line.
+    anchor = project_onto(anchor, bmax, bmin)
+
+    # Return white or black if the achromatic version is not within the RGB cube.
+    # HDR colors currently use the RGB maximum lightness. We do not currently
+    # clip HDR colors to SDR white, but that could be done if required.
+    if anchor == bmax:
+        color.update(rspace, cs.to_base(bmax) if coerced else bmax, mapcolor[-1])
+    elif anchor == bmin:
+        color.update(rspace, cs.to_base(bmin) if coerced else bmin, mapcolor[-1])
+    else:
+        # Ensure we are handling coordinates in the polar space to better retain hue
         if polar:
-            l, c, h = achroma._space.indexes()
-            achroma[c] = 0.0
+            start = mapcolor[:-1]
+            end = achroma[:-1]
         else:
-            l, a, b = achroma._space.indexes()
-            achroma[a] = 0.0
-            achroma[b] = 0.0
+            start = to_polar(mapcolor[:-1], a, b)
+            end = to_polar(achroma[:-1], a, b)
+            end[b] = start[b]
 
-        # If an alpha value is provided for adaptive lightness, calculate a lightness
-        # anchor point relative to the hue independent mid point. Scale lightness and
-        # chroma by the max lightness to get lightness between 0 and 1.
-        if adaptive:
-            max_light = color.new('xyz-d65', WHITE).convert(pspace, in_place=True)[l]
-            alight = adaptive_hue_independent(
-                mapcolor[l] / max_light,
-                max(mapcolor[c] if polar else alg.rect_to_polar(mapcolor[a], mapcolor[b])[0], 0) / max_light,
-                adaptive
-            ) * max_light
-            achroma[l] = alight
-        else:
-            alight = mapcolor[l]
+        # Select an offset from the gamut surface according to unit type (64-bit for Python).
+        # 32-bit may require 1e-6
+        low = mn + alg.ATOL
+        high = mx + alg.ATOL
 
-        # Some perceptual spaces, such as CAM16 or HCT, may compensate for adapting
-        # luminance which may give an achromatic that is not quite achromatic.
-        # Project the lightness point back onto to the gamut's achromatic line.
-        anchor = cs.from_base(achroma.convert(space)[:-1]) if coerced else achroma.convert(space)[:-1]
-        anchor = project_onto(anchor, bmax, bmin)
-
-        # Return white or black if the achromatic version is not within the RGB cube.
-        # HDR colors currently use the RGB maximum lightness. We do not currently
-        # clip HDR colors to SDR white, but that could be done if required.
-        if anchor == bmax:
-            color.update(space, cs.to_base(bmax) if coerced else bmax, mapcolor[-1])
-        elif anchor == bmin:
-            color.update(space, cs.to_base(bmin) if coerced else bmin, mapcolor[-1])
-        else:
-            # Ensure we are handling coordinates in the polar space to better retain hue
-            if polar:
-                start = mapcolor[:-1]
-                end = achroma[:-1]
-            else:
-                start = to_polar(mapcolor[:-1], a, b)
-                end = to_polar(achroma[:-1], a, b)
-                end[b] = start[b]
-
-            # Offset is required for some perceptual spaces that are sensitive
-            # to anchors that get too close to the surface.
-            offset = 1e-15
-
-            # Use an iterative process of casting rays to find the intersect with the RGB gamut
-            # and correcting the intersection onto the LCh chroma reduction path.
-            last = mapcolor.convert(space, in_place=True)[:-1]
+        # Use an iterative process of casting rays to find the intersect with the RGB gamut
+        # and correcting the intersection onto the LCh chroma reduction path.
+        last = mapcolor.convert(rspace, in_place=True)[:-1]
+        if any(mn > x or x > mx for x in last):
             for i in range(4):
                 if i:
                     coords = mapcolor.convert(pspace, in_place=True, norm=False)[:-1]
@@ -336,32 +391,84 @@ class RayTrace(Fit):
                             to_rect(coords, a, b)
                         mapcolor[:-1] = coords
 
-                    mapcolor.convert(space, in_place=True)
+                    mapcolor.convert(rspace, in_place=True)
 
                 # Cast a ray and find the intersection with the gamut surface
                 coords = cs.from_base(mapcolor[:-1]) if coerced else mapcolor[:-1]
                 intersection = raytrace_box(anchor, coords, bmin=bmin, bmax=bmax)
 
+                # If we cannot find an intersection, reset to last good color and quit
+                if not intersection:
+                    mapcolor[:-1] = last
+                    break
+
                 # Adjust anchor point closer to surface to improve results.
-                if i and all((bmin[r] + offset) < coords[r] < (bmax[r] - offset) for r in range(3)):
+                if i and all(low < x < high for x in coords):
                     anchor = coords
 
                 # Update color with the intersection point on the RGB surface.
-                if intersection:
-                    last = cs.to_base(intersection) if coerced else intersection
-                    mapcolor[:-1] = last
-                    continue
-
-                # If we cannot find an intersection, reset to last good color
+                last = cs.to_base(intersection) if coerced else intersection
                 mapcolor[:-1] = last
-                break  # pragma: no cover
+                continue
 
-            # Remove noise from floating point conversion.
-            if coerced:
-                color.update(
-                    space,
-                    cs.to_base([alg.clamp(x, bmin[e], bmax[e]) for e, x in enumerate(cs.from_base(mapcolor[:-1]))]),
-                    mapcolor[-1]
-                )
+        # Remove noise from floating point conversion.
+        if coerced:
+            mapcolor[:-1] = cs.to_base([max(mn, min(mx, x)) for x in cs.from_base(mapcolor[:-1])])
+        else:
+            mapcolor[:-1] = [max(mn, min(mx, x)) for x in mapcolor[:-1]]
+        color.update(mapcolor)
+
+
+class RayTrace(Fit):
+    """Gamut mapping by using ray tracing."""
+
+    NAME = "raytrace"
+    PSPACE = "oklch"
+
+    def fit(
+        self,
+        color: Color,
+        space: str,
+        *,
+        pspace: str | None = None,
+        adaptive: float = 0.0,
+        **kwargs: Any
+    ) -> None:
+        """Use ray tracing with a linear RGB space for a geometric approach to reducing chroma."""
+
+        if pspace is None:
+            pspace = self.PSPACE
+        cs = color.CS_MAP[space]
+
+        # Requires an RGB-ish or Prism space, preferably a linear space.
+        # Coerce RGB cylinders with no defined RGB space to RGB
+        coerced = False
+        if not isinstance(cs, Prism) or isinstance(cs, Luminant):
+            coerced = True
+            cs = coerce_to_rgb(cs)
+
+        # Get the maximum cube size, usually `[1.0, 1.0, 1.0]`
+        mx = cs.CHANNELS[0].high
+
+        # If there is a linear version of the RGB space, results will be better if we use that.
+        # Recalculate the bounding box relative to the linear version.
+        linear = cs.linear()
+        if linear and linear in color.CS_MAP:
+            subtractive = cs.SUBTRACTIVE
+            cs = color.CS_MAP[linear]
+            if subtractive != cs.SUBTRACTIVE:
+                mx = color.new(space, [cs.CHANNELS[0].low] * 3).convert(linear, in_place=True)[0]
             else:
-                color.update(space, [alg.clamp(x, bmin[e], bmax[e]) for e, x in enumerate(mapcolor[:-1])], mapcolor[-1])
+                mx = color.new(space, [mx] * 3).convert(linear, in_place=True)[0]
+            space = linear
+
+        # Get minimum
+        mn = cs.CHANNELS[0].low
+
+        # If we are gamut mapping using Oklab/OkLCh, per the CSS spec, and we are
+        # gamut mapping within an linear RGB gamut, use the CSS fast path that
+        # reduces overhead and is optimized for OkLCh and linear RGB.
+        if pspace in CSS_FAST_PATH and not coerced and hasattr(cs, TO_RGB):
+            css_fast_path(color, cs, pspace, adaptive, mn, mx)
+        else:
+            generic_path(color, space, cs, pspace, adaptive, mn, mx, coerced)
