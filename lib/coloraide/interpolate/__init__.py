@@ -15,17 +15,24 @@ License: MIT (As noted in https://github.com/LeaVerou/color.js/blob/master/packa
 """
 from __future__ import annotations
 import math
+import bisect
 import functools
+import itertools as it
 from abc import ABCMeta, abstractmethod
+from .. import util
 from .. import algebra as alg
-from .. spaces import HSVish, HSLish, RGBish, LChish, Labish
+from .. spaces import HSVish, HSLish, RGBish, LChish, Labish, HWBish
 from ..types import Matrix, Vector, ColorInput, Plugin, AnyColor
-from typing import Callable, Sequence, Mapping, Any, Generic, TYPE_CHECKING
+from typing import Callable, Sequence, Mapping, Any, Generic, Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:  #pragma: no cover
     from ..color import Color
 
 __all__ = ('stop', 'hint', 'interpolator', 'Interpolate', 'Interpolator')
+
+
+class Sentinel(float):
+    """Sentinel object that is specific to averaging that we shouldn't see defined anywhere else."""
 
 
 class stop:
@@ -38,6 +45,224 @@ class stop:
 
         self.color = color
         self.stop = value
+
+
+def normalize_hue(
+    h1: float,
+    h2: float,
+    hue: str,
+    max_hue: float
+) -> tuple[float, float]:
+    """
+    Adjust hues.
+
+    Undefined hues are not resolved at this point in time.
+    When interpolating between achromatic colors, hue specifications
+    such as shorter and longer will have no affect as undefined hues
+    will remain undefined meaning there is no arc length to choose
+    between. This gives more intuitive interpolation results.
+    """
+
+    is_nan1 = math.isnan(h1)
+    is_nan2 = math.isnan(h2)
+
+    if is_nan1 and is_nan2:
+        return h1, h2
+    elif is_nan1:
+        h1 = h2
+    elif is_nan2:
+        h2 = h1
+
+    if hue == "specified":
+        return h1, h2
+
+    half = max_hue / 2
+
+    h1 %= max_hue
+    h2 %= max_hue
+
+    if hue == "shorter":
+        if h2 - h1 > half:
+            h1 += max_hue
+        elif h2 - h1 < -half:
+            h2 += max_hue
+
+    elif hue == "longer":
+        if 0 < (h2 - h1) < half:
+            h1 += max_hue
+        elif -half < (h2 - h1) <= 0:
+            h2 += max_hue
+
+    elif hue == "increasing":
+        if h2 < h1:
+            h2 += max_hue
+
+    elif hue == "decreasing":
+        if h1 < h2:
+            h1 += max_hue
+
+    else:
+        raise ValueError(f"Unknown hue adjuster '{hue}'")
+
+    return h1, h2
+
+
+def multi_mix(
+    color_cls: type[AnyColor],
+    colors: Iterable[ColorInput],
+    weights: Iterable[float] | None,
+    space: str,
+    premultiplied: bool = True,
+    carryforward: bool = False,
+    powerless: bool = False,
+    hue: str = 'shorter',
+    average: bool = False
+) -> AnyColor:
+    """Mix multiple colors."""
+
+    # Always use "powerless" when averaging
+    if average:
+        powerless = True
+
+    # Get channel information
+    cs = color_cls.CS_MAP[space]
+    if cs.is_polar():
+        hue_index = cs.hue_index()  # type: ignore[attr-defined]
+        hue_max = cs.channels[hue_index].high
+        is_hwb = isinstance(cs, HWBish)
+        to_rad = math.tau / hue_max
+        to_hue = hue_max / math.tau
+    else:
+        hue_index = -1
+        hue_max = 0.0
+        is_hwb = False
+        to_rad = 0.0
+        to_hue = 0.0
+
+    obj = color_cls(space, [])
+    channels = cs.channels
+    chan_count = len(channels)
+    avgs = [0.0] * chan_count
+    counts = [0] * chan_count
+    sin = 0.0
+    cos = 0.0
+    if hue_index != -1:
+        avgs[hue_index] = math.nan
+    wavg = 0.0
+    no_weights = not weights
+    if no_weights:
+        weights = ()
+    mx = 0.0
+
+    # Sum channel values using a rolling average. Apply premultiplication and additional weighting as required.
+    count = 0
+    sentinel = Sentinel()
+    fill = 1 if no_weights else sentinel
+    for c, w in it.zip_longest(colors, [] if no_weights else weights, fillvalue=fill):  # type: ignore[arg-type]
+
+        # Handle explicit weighted cases
+        if not no_weights:
+            # If there are more weights than colors, ignore additional weights
+            if c is sentinel:
+                break
+
+            # If there are less weights than colors, assume full weight for colors without weights
+            if w is sentinel:
+                w = mx
+
+            # Negative weights are considered as zero weight
+            if w < 0.0:
+                w = 0.0
+
+            # Track the largest weight so we can populate colors with no weights
+            elif w > mx:
+                mx = w
+
+        if carryforward:
+            obj.mutate(c)  # type: ignore[arg-type]
+            carryforward_convert(obj, space, hue_index, powerless)
+        else:
+            obj.update(c)  # type: ignore[arg-type]
+            if powerless and hue_index >= 0 and not math.isnan(obj[hue_index]) and obj.is_achromatic():
+                obj[hue_index] = math.nan
+
+        coords = obj[:]
+
+        # Average weights
+        count += 1
+        wavg += (w - wavg) / count
+
+        # Include alpha in average if it is defined. If not defined, skip, but assume color is opaque.
+        alpha = coords[-1]
+        if math.isnan(alpha):
+            alpha = 1.0
+        else:
+            counts[-1] += 1
+            avgs[-1] += ((coords[-1] * w) - avgs[-1]) / counts[-1]
+
+        # Color channels use the provided weight and alpha weighting if premultiply is enabled
+        wfactor = (alpha * w) if premultiplied else w
+        for i in range(chan_count - 1):
+            coord = coords[i]
+            is_hue = i == hue_index
+            # When averaging, mo need to include a color component alpha is zero and not doing premultiplication.
+            # Also, don't include if coordinate is undefined; hues are an exception when not averaging.
+            if (not math.isnan(coord) or (not average and is_hue)) and (premultiplied or not average or alpha):
+                counts[i] += 1
+                n = counts[i]
+                if is_hue:
+                    # Circular mean
+                    if average:
+                        rad = coord * to_rad
+                        sin += ((math.sin(rad) * wfactor) - sin) / n
+                        cos += ((math.cos(rad) * wfactor) - cos) / n
+                    # CSS style hue interpolation
+                    else:
+                        avgs[i], coord = normalize_hue(avgs[i], coord, hue, hue_max)
+                        avgs[i] += (coord - avgs[i]) * (w / (wavg * n)) if wavg else math.nan
+                else:
+                    avgs[i] += (coord * wfactor - avgs[i]) / n
+
+    if not count:
+        raise ValueError('At least one color must be provided in order to mix colors')
+
+    # Undo premultiplication and weighting to get the final color.
+    # Adjust a channel to be undefined if all values in channel were undefined or if it is an achromatic hue channel.
+    if not wavg:
+        wavg = math.nan
+    avgs[-1] = alpha = math.nan if not counts[-1] else avgs[-1] / wavg
+    if math.isnan(alpha):
+        alpha = 1.0
+    factor = (alpha * wavg) if premultiplied else wavg
+
+    for i in range(chan_count - 1):
+        if not counts[i] or (average and not alpha):
+            avgs[i] = math.nan
+        elif i == hue_index:
+            # Circular mean
+            if average:
+                sin /= factor
+                cos /= factor
+                # Combine polar parts into a degree
+                if abs(sin) < util.ACHROMATIC_THRESHOLD_SM and abs(cos) < util.ACHROMATIC_THRESHOLD_SM:
+                    avgs[i] = math.nan
+                else:
+                    avg_theta = math.atan2(sin, cos) * to_hue
+                    avgs[i] = (avg_theta + hue_max) if avg_theta < 0 else avg_theta
+        elif factor:
+            avgs[i] /= factor
+
+    # Create the color.
+    color = obj.update(space, avgs[:-1], avgs[-1])
+    # When averaging, if polar and no defined hue, force an achromatic state.
+    if average and cs.is_polar():
+        if is_hwb and math.isnan(color[hue_index]):
+            w, b = cs.indexes()[1:]
+            if color[w] + color[b] < 1:
+                color[w] = 1 - color[b]
+        elif math.isnan(color[hue_index]) and not math.isnan(color[cs.radial_index()]):  # type: ignore[attr-defined]
+            color[cs.radial_index()] = 0  # type: ignore[attr-defined]
+    return color
 
 
 def midpoint(t: float, h: float = 0.5) -> float:
@@ -101,6 +326,7 @@ class Interpolator(Generic[AnyColor], metaclass=ABCMeta):
         self.extrapolate = extrapolate
         self.current_easing = None  # type: Mapping[str, Callable[..., float]] | Callable[..., float] | None
         self.hue = hue
+        self.increasing = True
         cs = self.color_cls.CS_MAP[space]
         if cs.is_polar():
             self.hue_index = cs.hue_index()  # type: ignore[attr-defined]
@@ -119,6 +345,7 @@ class Interpolator(Generic[AnyColor], metaclass=ABCMeta):
 
         # Set the domain
         self._domain = []  # type: Vector
+
         if domain is not None:
             self.domain(domain)
 
@@ -186,6 +413,12 @@ class Interpolator(Generic[AnyColor], metaclass=ABCMeta):
             raise ValueError(f"'{space}' is not a valid color space")
         self._out_space = space
 
+    def domain(self, domain: Sequence[float]) -> None:
+        """Set the domain."""
+
+        self._domain = list(domain)
+        self.increasing = not domain or len(domain) == 1 or domain[1] > domain[0]
+
     def padding(self, padding: float | Sequence[float]) -> None:
         """Add/adjust padding."""
 
@@ -214,28 +447,6 @@ class Interpolator(Generic[AnyColor], metaclass=ABCMeta):
         # Calculate padded start and end
         else:
             self._padding = (0.0 + padding[0], 1.0 - padding[1])
-
-    def domain(self, domain: Sequence[float]) -> None:
-        """Set the domain."""
-
-        # Ensure domain ascends.
-        # If we have a domain of length 1, we will duplicate it.
-        d = []  # type: Vector
-        if domain:
-            length = len(domain)
-
-            # Ensure values are not descending
-            d.append(domain[0])
-            for index in range(length - 1):
-                b = domain[index + 1]
-                d.append(d[-1] if b <= d[-1] else b)
-
-            # We need at least two values, so duplicate the first.
-            if len(d) == 1:
-                d.append(d[0])
-            domain = d
-
-        self._domain = d
 
     @abstractmethod
     def setup(self) -> None:
@@ -405,7 +616,7 @@ class Interpolator(Generic[AnyColor], metaclass=ABCMeta):
 
         return progress(t) if progress is not None else t
 
-    def scale(self, point: float) -> float:
+    def handle_domain(self, p: float) -> float:
         """
         Scale a point from a custom domain into a domain of 0 to 1.
 
@@ -413,30 +624,30 @@ class Interpolator(Generic[AnyColor], metaclass=ABCMeta):
         so that our logic can remain consistent.
         """
 
-        if point < self._domain[0]:
-            point = (point - self._domain[0]) / (self._domain[-1] - self._domain[0]) if self.extrapolate else 0.0
-        elif point > self._domain[-1]:
-            point = 1.0 + (point - self._domain[-1]) / (self._domain[-1] - self._domain[0]) if self.extrapolate else 1.0
+        import operator as op
+
+        le, ge = (op.le, op.ge) if self.increasing else (op.ge, op.le)
+        bisect_left = bisect.bisect_left if self.increasing else alg.reversed_bisect_left
+
+        if le(p, self._domain[0]):
+            p = (p - self._domain[0]) / (self._domain[-1] - self._domain[0]) if self.extrapolate else 0.0
+        elif ge(p, self._domain[-1]):
+            p = 1.0 + (p - self._domain[-1]) / (self._domain[-1] - self._domain[0]) if self.extrapolate else 1.0
         else:
             regions = len(self._domain) - 1
             size = (1 / regions)
-            index = 0
-            adjusted = 0.0
-            for index in range(regions):
-                a, b = self._domain[index:index + 2]
-                if point >= a and point <= b:
-                    l = b - a
-                    adjusted = ((point - a) / l) if l else 0.0
-                    break
-
-            point = size * index + (adjusted * size)
-        return point
+            index = bisect_left(self._domain, p) - 1
+            a, b = self._domain[index:index + 2]
+            l = b - a
+            adjusted = ((p - a) / l) if l else 0.0
+            p = size * index + (adjusted * size)
+        return p
 
     def __call__(self, point: float) -> AnyColor:
         """Find which leg of the interpolation the request is between."""
 
         if self._domain:
-            point = self.scale(point)
+            point = self.handle_domain(point)
 
         if self._padding:
             slope = (self._padding[1] - self._padding[0])
@@ -465,7 +676,7 @@ class Interpolator(Generic[AnyColor], metaclass=ABCMeta):
         raise RuntimeError(f'Iterpolation could not be found for {point}')  # pragma: no cover
 
 
-class Interpolate(Generic[AnyColor], Plugin, metaclass=ABCMeta):
+class Interpolate(Plugin, metaclass=ABCMeta):
     """Interpolation plugin."""
 
     NAME = ""
@@ -500,6 +711,31 @@ class Interpolate(Generic[AnyColor], Plugin, metaclass=ABCMeta):
         if space is None:
             space = color_cls.INTERPOLATE
         return space
+
+    def weighted_mix(
+        self,
+        color_cls: type[AnyColor],
+        colors: Iterable[ColorInput],
+        weights: Iterable[float] | None,
+        space: str | None,
+        premultiplied: bool = True,
+        carryforward: bool = False,
+        powerless: bool = False,
+        hue: str = 'shorter',
+        **kwargs: Any
+    ) -> AnyColor:
+        """Mix a list of colors together with weights."""
+
+        return multi_mix(
+            color_cls,
+            colors,
+            weights,
+            self.get_space(space, color_cls),
+            premultiplied,
+            carryforward,
+            powerless,
+            hue
+        )
 
 
 def calc_stops(stops: dict[int, float], count: int) -> dict[int, float]:
@@ -593,6 +829,9 @@ def carryforward_convert(color: Color, space: str, hue_index: int, powerless: bo
             'L': False, 'V': False, 'a': False, 'b': False
         }
 
+        # Analogous components: all undefined
+        all_undefined = all(math.isnan(c) for c in color[:-1])
+
         # Gather undefined channels
         if isinstance(cs1, RGBish):
             for i, name in zip(cs1.indexes(), ('R', 'G', 'B')):
@@ -602,18 +841,34 @@ def carryforward_convert(color: Color, space: str, hue_index: int, powerless: bo
             for i, name in zip(cs1.indexes(), ('L', 'C', 'H')):
                 if math.isnan(color[i]):
                     channels[name] = True
+            # Analogous components: chroma and hue
+            if channels['C'] and channels['H']:
+                channels['a'] = True
+                channels['b'] = True
         elif isinstance(cs1, Labish):
             for i, name in zip(cs1.indexes(), ('L', 'a', 'b')):
                 if math.isnan(color[i]):
                     channels[name] = True
+            # Analogous components: chroma and hue
+            if channels['a'] and channels['b']:
+                channels['C'] = True
+                channels['H'] = True
         elif isinstance(cs1, HSLish):
             for i, name in zip(cs1.indexes(), ('H', 'C', 'L')):
                 if math.isnan(color[i]):
                     channels[name] = True
+            # Analogous components: chroma and hue
+            if channels['C'] and channels['H']:
+                channels['a'] = True
+                channels['b'] = True
         elif isinstance(cs1, HSVish):
             for i, name in zip(cs1.indexes(), ('H', 'C', 'V')):
                 if math.isnan(color[i]):
                     channels[name] = True
+            # Analogous components: chroma and hue
+            if channels['C'] and channels['H']:
+                channels['a'] = True
+                channels['b'] = True
         elif cs1.is_polar():
             if math.isnan(color[cs1.hue_index()]):  # type: ignore[attr-defined]
                 channels['H'] = True
@@ -623,7 +878,9 @@ def carryforward_convert(color: Color, space: str, hue_index: int, powerless: bo
             carry.append(-1)
 
         # Channels that need to be carried forward
-        if isinstance(cs2, RGBish):
+        if all_undefined:
+            carry.extend(cs2.indexes())
+        elif isinstance(cs2, RGBish):
             indexes = cs2.indexes()
             for e, name in enumerate(('R', 'G', 'B')):
                 if channels[name]:
@@ -664,6 +921,37 @@ def carryforward_convert(color: Color, space: str, hue_index: int, powerless: bo
     # Carry forward is not needed as nothing was lost through conversion
     elif powerless and hue_index >= 0 and color.is_achromatic():
         color[hue_index] = math.nan
+
+
+def weighted_mix(
+    color_cls: type[AnyColor],
+    interpolator: str,
+    colors: Iterable[ColorInput],
+    weights: Iterable[float] | None,
+    space: str | None,
+    premultiplied: bool = True,
+    carryforward: bool = False,
+    powerless: bool = False,
+    hue: str = 'shorter',
+    **kwargs: Any
+) -> AnyColor:
+    """Perform a weighted mix between multiple colors."""
+
+    plugin = color_cls.INTERPOLATE_MAP.get(interpolator)
+    if plugin is None:
+        raise ValueError(f"'{interpolator}' is not a recognized interpolator")
+
+    return plugin.weighted_mix(
+        color_cls,
+        colors,
+        weights,
+        space,
+        premultiplied,
+        carryforward,
+        powerless,
+        hue,
+        **kwargs
+    )
 
 
 def interpolator(

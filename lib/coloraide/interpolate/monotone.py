@@ -1,7 +1,7 @@
 """Monotone interpolation based on a Hermite interpolation spline."""
 from __future__ import annotations
 from .bspline import InterpolatorBSpline
-from ..interpolate import Interpolator, Interpolate
+from . import Interpolator, Interpolate
 from .. import algebra as alg
 from .. types import AnyColor
 from typing import Any
@@ -13,11 +13,12 @@ class InterpolatorMonotone(InterpolatorBSpline[AnyColor]):
     def setup(self) -> None:
         """Setup."""
 
-        super().setup()
-        self.spline = alg.monotone
+        self.handle_undefined()
+        self.spline = alg.MonotoneInterpolator
+        self.spline.preprocess(self.coordinates, end_cond=self.end_cond)
 
 
-class Monotone(Interpolate[AnyColor]):
+class Monotone(Interpolate):
     """Monotone interpolation plugin."""
 
     NAME = "monotone"

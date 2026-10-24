@@ -2,7 +2,7 @@
 from __future__ import annotations
 import math
 from .. import algebra as alg
-from ..interpolate import Interpolator, Interpolate
+from . import Interpolator, Interpolate
 from ..types import Vector, AnyColor
 from typing import Any
 
@@ -31,6 +31,16 @@ class InterpolatorLinear(Interpolator[AnyColor]):
         c1 = color1[index]
         c2 = color2[index]
 
+        is_nan1 = math.isnan(c1)
+        is_nan2 = math.isnan(c2)
+
+        if is_nan1 and is_nan2:
+            return
+        elif is_nan1:
+            c1 = c2
+        elif is_nan2:
+            c2 = c1
+
         if hue == "specified":
             return
 
@@ -39,9 +49,6 @@ class InterpolatorLinear(Interpolator[AnyColor]):
 
         c1 %= mx
         c2 %= mx
-
-        if math.isnan(c1) or math.isnan(c2):
-            return
 
         if hue == "shorter":
             if c2 - c1 > half:
@@ -150,7 +157,7 @@ class InterpolatorLinear(Interpolator[AnyColor]):
         return channels
 
 
-class Linear(Interpolate[AnyColor]):
+class Linear(Interpolate):
     """Linear interpolation plugin."""
 
     NAME = "linear"

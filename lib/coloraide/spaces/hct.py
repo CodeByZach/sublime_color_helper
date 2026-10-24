@@ -42,24 +42,23 @@ from .lch import LCh
 from ..cat import WHITES
 from ..channels import Channel, FLG_ANGLE
 from .cam16 import Environment, cam_to_xyz, xyz_to_cam
-from .lab import EPSILON, KAPPA, KE
+from .lab import y_to_lstar, lstar_to_y
 from ..types import Vector
 import math
+from .. import util
 
-
-def y_to_lstar(y: float) -> float:
-    """Convert XYZ Y to Lab L*."""
-
-    fy = alg.nth_root(y, 3) if y > EPSILON else (KAPPA * y + 16) / 116
-    return (116.0 * fy) - 16.0
-
-
-def lstar_to_y(lstar: float) -> float:
-    """Convert Lab L* to XYZ Y."""
-
-    fy = (lstar + 16) / 116
-    y = fy ** 3 if lstar > KE else lstar / KAPPA
-    return y
+# To obtain the first derivative for `J'`, we manually measure the rate of change
+# at various points for `J` in relation to `y` in a CAM16 with the same environment
+# that HCT uses. From this, it can be noted that if `dy / dJ` is divided by `y / J`,
+# we get a fairly constant value (roughly between 1.8 - 2). From this, we have a
+# rough approximation of `J' ~= K * y / J`, where we set `K` to measured average of
+# `~1.832`.
+#
+# As it is possible for some colors to perform better if a different `K` is used,
+# we employ Ostrowski's Method to further refine the Newton iteration which helps to
+# compensates for any deviation and to converge on a more precise solution quicker.
+K = 1.832
+D65 = WHITES['2deg']['D65']
 
 
 def hct_to_xyz(coords: Vector, env: Environment) -> Vector:
@@ -74,24 +73,18 @@ def hct_to_xyz(coords: Vector, env: Environment) -> Vector:
     just return the closest we were able to get.
     """
 
-    h, c, t = coords[:]
+    h, c, t = coords
 
     if t == 0 and c == 0:
         return [0.0, 0.0, 0.0]
 
     # Calculate the Y we need to target
     y = lstar_to_y(t)
-
-    # Try to start with a reasonable initial guess for J
-    # Calculated by curve fitting J vs T.
-    if t >= 0:
-        j = 0.003790578348640494 * t * t + 0.6089841908066893 * t + 0.9154856839591797
-    else:
-        j = 9.514281401058887e-06 * t * t + 0.08693011228986187 * t - 21.92910930537688
+    # Estimate J using assuming Y with an achromatic color.
+    j = xyz_to_cam(util.xy_to_xyz(D65, Y=y), env=env)[0]
 
     epsilon = 1e-12
-
-    maxiter = 16
+    maxiter = 8
     last = math.inf
     best = xyz = [0.0] * 3
 
@@ -99,39 +92,41 @@ def hct_to_xyz(coords: Vector, env: Environment) -> Vector:
     for _ in range(maxiter):
         prev = j
         xyz = cam_to_xyz(J=j, C=c, h=h, env=env)
+        f1 = xyz[1] - y
 
-        # If we are within range, return XYZ
-        # If we are closer than last time, save the values
-        f0 = xyz[1] - y
-        delta = abs(f0)
-
-        if delta < epsilon:
-            return xyz
-
+        delta = abs(f1)
         if delta < last:
+            # If we are within range, return XYZ
+            if delta < epsilon:
+                return xyz
+
+            # If we are closer than last time, save the values.
+            # This is to ensure we take the best value when
+            # iterations are struggling to find a good value,
+            # e.g. Prophoto RGB in the blue region which is outside
+            # the visible spectrum and the CAM16 algorithm breaks down.
             best = xyz
             last = delta
 
-        # ```
-        # f(j_root) = (j ** (1 / 2)) * 0.1
-        # f(j) = ((f(j_root) * 100) ** 2) / j - 1 = 0
-        # f(j_root) = Y = y / 100
-        # f(j) = (y ** 2) / j - 1
-        # f'(j) = (2 * y) / j
-        # f'(j) = dx
-        # j = j - f0 / dx
-        # ```
-
         # Newton: 2nd order convergence
-        # `dx` fraction is flipped so we can multiply by the derivative instead of divide
-        j -= f0 * alg.zdiv(j, 2 * xyz[1])
+        d1 = alg.zdiv(K * xyz[1], j)
+        if abs(d1) < epsilon:
+            break
+        j -= f1 / d1
 
-        # If J is zero, the next round will yield zero, so quit
-        if j == 0 or abs(prev - j) < epsilon:  # pragma: no cover
+        # Ostrowski: 4th order convergence
+        xyz2 = cam_to_xyz(J=j, C=c, h=h, env=env)
+        f2 = xyz2[1] - y
+        denom = f1 - 2 * f2
+        if abs(denom) >= epsilon:  # pragma: no cover
+            j -= f1 / denom * (f2 / d1)
+
+        # Quit if there has been little to no change
+        if abs(j - prev) < epsilon:  # pragma: no cover
             break
 
     # ```
-    # print('FAIL:', [h, c, t], xyz[1], y)
+    # print('FAIL:', [h, c, t], j, xyz[1], y)
     # ```
 
     return best

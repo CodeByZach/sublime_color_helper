@@ -13,7 +13,7 @@ DEF_ALPHA = 1.0
 DEF_MIX = 0.5
 DEF_HUE_ADJ = "shorter"
 DEF_INTERPOLATE = "oklab"
-DEF_FIT = "lch-chroma"
+DEF_FIT = "raytrace"
 DEF_HARMONY = "oklch"
 DEF_DELTA_E = "76"
 DEF_AVERAGE = 'srgb-linear'
@@ -124,26 +124,6 @@ def eotf_st2084(
         c = alg.spow(c, im2)
         adjusted.append(10000.0 * alg.spow(max((c - c1), 0.0) / (c2 - c3 * c), im1))
     return adjusted
-
-
-def rgb_scale(vec: VectorLike) -> Vector:
-    """
-    Scale the RGB vector.
-
-    If minimum is less than zero, behaves like min/max normalization.
-    If minimum is not less than zero, behaves like maximum normalization.
-    """
-
-    # `(v - min_v)`
-    w = min(vec)
-    if w < 0.0:
-        vec = [v - w for v in vec]
-
-    # `(max_v - min_v)`
-    m = max(vec)
-
-    # `(v - min_v) / (max_v - min_v)`
-    return [v / m if m else v for v in vec]
 
 
 def scale100(coords: Vector) -> Vector:

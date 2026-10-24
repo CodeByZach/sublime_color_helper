@@ -5,7 +5,7 @@ https://ia802802.us.archive.org/23/items/gov.law.cie.15.2004/cie.15.2004.pdf
 http://www.brucelindbloom.com/Eqn_Lab_to_XYZ.html
 """
 from __future__ import annotations
-from ...spaces import Space, Labish
+from .. import Space, Labish
 from ...cat import WHITES
 from ...channels import Channel, FLG_MIRROR_PERCENT
 from ... import util
@@ -17,6 +17,21 @@ EPSILON = 216 / 24389  # `6^3 / 29^3`
 EPSILON3 = 6 / 29  # Cube root of EPSILON
 KAPPA = 24389 / 27
 KE = 8  # KAPPA * EPSILON = 8
+
+
+def y_to_lstar(y: float) -> float:
+    """Convert XYZ Y to Lab L*."""
+
+    fy = alg.nth_root(y, 3) if y > EPSILON else (KAPPA * y + 16) / 116
+    return (116.0 * fy) - 16.0
+
+
+def lstar_to_y(lstar: float) -> float:
+    """Convert Lab L* to XYZ Y."""
+
+    fy = (lstar + 16) / 116
+    y = fy ** 3 if lstar > KE else lstar / KAPPA
+    return y
 
 
 def lab_to_xyz(lab: Vector, white: VectorLike) -> Vector:
@@ -60,8 +75,8 @@ class Lab(Labish, Space):
 
     CHANNELS = (
         Channel("l", 0.0, 1.0),
-        Channel("a", 1.0, 1.0, flags=FLG_MIRROR_PERCENT),
-        Channel("b", 1.0, 1.0, flags=FLG_MIRROR_PERCENT)
+        Channel("a", -1.0, 1.0, flags=FLG_MIRROR_PERCENT),
+        Channel("b", -1.0, 1.0, flags=FLG_MIRROR_PERCENT)
     )
     CHANNEL_ALIASES = {
         "lightness": "l"
@@ -72,7 +87,7 @@ class Lab(Labish, Space):
 
         super().__init__(**kwargs)
         order = alg.order(round(self.channels[self.indexes()[0]].high, 5))
-        self.achromatic_threshold = (1 * 10.0 ** order) / 1_000_000
+        self.achromatic_threshold = max((1 * 10.0 ** order) / 1_000_000, 1e-12)
 
     def is_achromatic(self, coords: Vector) -> bool:
         """Check if color is achromatic."""

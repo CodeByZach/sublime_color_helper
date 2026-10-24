@@ -5,7 +5,7 @@ http://www2.cs.uregina.ca/~anima/408/Notes/Interpolation/Parameterized-Curves-Su
 """
 from __future__ import annotations
 from .bspline import InterpolatorBSpline
-from ..interpolate import Interpolator, Interpolate
+from . import Interpolator, Interpolate
 from .. import algebra as alg
 from .. types import AnyColor
 from typing import Any
@@ -17,11 +17,12 @@ class InterpolatorCatmullRom(InterpolatorBSpline[AnyColor]):
     def setup(self) -> None:
         """Setup."""
 
-        super().setup()
-        self.spline = alg.catrom
+        self.handle_undefined()
+        self.spline = alg.CatmullRomInterpolator
+        self.spline.preprocess(self.coordinates, end_cond=self.end_cond)
 
 
-class CatmullRom(Interpolate[AnyColor]):
+class CatmullRom(Interpolate):
     """Catmull-Rom interpolation plugin."""
 
     NAME = "catrom"

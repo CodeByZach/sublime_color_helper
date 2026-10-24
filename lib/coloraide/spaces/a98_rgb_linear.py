@@ -4,20 +4,20 @@ Linear A98 RGB color class.
 - https://www.adobe.com/digitalimag/pdfs/AdobeRGB1998.pdf
 """
 from __future__ import annotations
-from .srgb_linear import sRGBLinear
+from .srgb_linear import RGB
 from .. import algebra as alg
 from ..types import Vector
 
 RGB_TO_XYZ = [
-    [0.5766690429101307, 0.1855582379065463, 0.18822864623499472],
-    [0.2973449752505361, 0.6273635662554661, 0.07529145849399789],
-    [0.027031361386412343, 0.07068885253582723, 0.9913375368376389]
+    [0.5766690429101307  , 0.1855582379065463  , 0.18822864623499472 ],
+    [0.2973449752505361  , 0.6273635662554661  , 0.07529145849399789 ],
+    [0.027031361386412343, 0.07068885253582723 , 0.9913375368376389  ]
 ]
 
 XYZ_TO_RGB = [
-    [2.0415879038107456, -0.5650069742788595, -0.34473135077832956],
-    [-0.9692436362808795, 1.8759675015077202, 0.0415550574071756],
-    [0.013444280632031147, -0.11836239223101837, 1.0151749943912054]
+    [ 2.0415879038107456  , -0.5650069742788595  , -0.34473135077832956 ],
+    [-0.9692436362808795  ,  1.8759675015077202  ,  0.0415550574071756  ],
+    [ 0.013444280632031147, -0.11836239223101837 ,  1.0151749943912054  ]
 ]
 
 
@@ -40,12 +40,14 @@ def xyz_to_lin_a98rgb(xyz: Vector) -> Vector:
     return alg.matmul_x3(XYZ_TO_RGB, xyz, dims=alg.D2_D1)
 
 
-class A98RGBLinear(sRGBLinear):
+class A98RGBLinear(RGB):
     """Linear A98 RGB class."""
 
     BASE = "xyz-d65"
     NAME = "a98-rgb-linear"
     SERIALIZE = ('--a98-rgb-linear',)
+    TO_XYZ = RGB_TO_XYZ
+    TO_RGB = XYZ_TO_RGB
 
     def to_base(self, coords: Vector) -> Vector:
         """To XYZ from A98 RGB."""

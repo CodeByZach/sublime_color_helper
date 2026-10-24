@@ -42,12 +42,18 @@ from .spaces.ryb import RYB, RYBBiased
 from .spaces.cubehelix import Cubehelix
 from .spaces.rec2020_oetf import Rec2020OETF
 from .spaces.msh import Msh
+from .spaces.helmgen import Helmgen
+from .spaces.helmgenlch import Helmgenlch
+from .spaces.helmlab_metric import HelmlabMetric
 from .distance.delta_e_99o import DE99o
 from .distance.delta_e_cam16 import DECAM16
 from .distance.delta_e_cam02 import DECAM02
 from .distance.delta_e_hct import DEHCT
+from .distance.delta_e_helmlab import DEHelmlab
 from .gamut.fit_hct_chroma import HCTChroma
+from .gamut.fit_oklch_cubic import OkLChCubic
 from .interpolate.catmull_rom import CatmullRom
+from .interpolate.spectral import Spectral, SpectralContinuous
 from .contrast.lstar import LstarContrast
 from .cat import VonKries, XYZScaling, CAT02, CMCCAT97, Sharp, CMCCAT2000, CAT16
 from .color import ColorMatch
@@ -111,15 +117,20 @@ ColorAll.register(
         Msh(),
         sCAMJMh(),
         sUCS(),
+        Helmgen(),
+        HelmlabMetric(),
+        Helmgenlch(),
 
         # Delta E
         DE99o(),
         DECAM16(),
         DECAM02(),
         DEHCT(),
+        DEHelmlab(),
 
         # Gamut Mapping
         HCTChroma(),
+        OkLChCubic(),
 
         # CAT
         VonKries(),
@@ -132,6 +143,8 @@ ColorAll.register(
 
         # Interpolation
         CatmullRom(),
+        Spectral(),
+        SpectralContinuous(),
 
         # Contrast
         LstarContrast()
